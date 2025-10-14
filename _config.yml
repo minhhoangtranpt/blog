@@ -21,6 +21,15 @@ twitter_username: your_twitter_handle
 github_username:  your_username
 
 # Build settings
-theme: minima
+# Xóa hoặc ghi chú lại dòng này
+# theme: minima
+
+# Thêm dòng này
+remote_theme: pages-themes/cayman@v0.2.0
+
+# Các thông tin khác của bạn
+title: Blog Với Giao Diện Mới
+author: Tên Của Bạn
+description: "Blog của tôi giờ đã đẹp hơn rất nhiều!"
 plugins:
   - jekyll-feed
