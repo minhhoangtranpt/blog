@@ -5,5 +5,5 @@ description: >-
   Đây là blog cá nhân của tôi.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://minhhoangtranpt.github.io/blog" # the base hostname & protocol for your site
-theme: minima
+theme: jekyll-theme-cayman
 ---
