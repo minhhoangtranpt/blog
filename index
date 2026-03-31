@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CẢNH BÁO - CÔNG AN NHÂN DÂN VIỆT NAM</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #001f3f, #000);
+            color: #fff;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #002b5c;
+            padding: 15px 0;
+            border-bottom: 5px solid #ffcc00;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+        }
+
+        .logo {
+            width: 90px;
+            height: 90px;
+            background: #ffcc00;
+            color: #002b5c;
+            font-size: 50px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #ffcc00;
+            font-size: 2.8rem;
+            margin: 20px 0 10px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px #ff0000;
+        }
+
+        .warning-box {
+            max-width: 900px;
+            margin: 30px auto;
+            background: rgba(0, 43, 92, 0.95);
+            border: 4px solid #ff0000;
+            border-radius: 10px;
+            padding: 40px 30px;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.7);
+        }
+
+        .alert-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: flash 1.5s infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        p {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+
+        .highlight {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #ff0000;
+            color: white;
+            padding: 18px 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 10px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.5);
+        }
+
+        .btn:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #001f3f;
+            padding: 15px;
+            font-size: 1.1rem;
+            border-top: 3px solid #ffcc00;
+        }
+
+        .siren {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 40px;
+            animation: siren-flash 0.8s infinite alternate;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="siren">🚨</div>
+
+    <div class="header">
+        <div class="logo">CẢNH SÁT</div>
+        <h2>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h2>
+        <h3>BỘ CÔNG AN - CÔNG AN NHÂN DÂN</h3>
+    </div>
+
+    <div class="warning-box">
+        <div class="alert-icon">⚠️</div>
+        
+        <h1>CẢNH BÁO KHẨN CẤP</h1>
+        
+        <p class="highlight">Bạn đã vi phạm pháp luật theo Điều 8 Luật An ninh mạng 2018.</p>
+        
+        <p>Thiết bị của bạn đang bị theo dõi vì có dấu hiệu liên quan đến hoạt động <strong>phá hoại an ninh quốc gia</strong>, <strong>lan truyền thông tin sai sự thật</strong> hoặc <strong>vi phạm pháp luật hình sự</strong>.</p>
+        
+        <p>Để tránh bị khởi tố và tạm giữ, vui lòng:</p>
+        
+        <ul style="list-style: none; padding: 0; font-size: 1.4rem; margin: 25px 0;">
+            <li>✅ Xác nhận danh tính ngay lập tức</li>
+            <li>✅ Cung cấp thông tin cá nhân</li>
+            <li>✅ Thanh toán khoản phạt hành chính</li>
+        </ul>
+
+        <a href="#" onclick="alert('Đây chỉ là trang demo - Không có hành động thật sự được thực hiện!')" class="btn">
+            XÁC NHẬN NGAY & THANH TOÁN PHẠT
+        </a>
+        
+        <p style="color: #ff6666; font-size: 1.1rem; margin-top: 30px;">
+            Nếu không thực hiện trong vòng 5 phút, tài khoản của bạn sẽ bị khóa và cơ quan chức năng sẽ đến làm việc trực tiếp.
+        </p>
+    </div>
+
+    <div class="footer">
+        <strong>CÔNG AN NHÂN DÂN VIỆT NAM</strong> — Đường dây nóng: 113 — Website chính thức: bocongan.gov.vn
+    </div>
+
+    <script>
+        // Hiệu ứng cảnh báo (không cho đóng tab dễ dàng - demo)
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Bạn chắc chắn muốn rời khỏi trang cảnh báo của Công an?';
+        });
+
+        // Hiển thị alert khi load
+        setTimeout(() => {
+            alert("🚨 CẢNH BÁO TỪ CÔNG AN: Thiết bị của bạn đang bị khóa tạm thời do vi phạm pháp luật!");
+        }, 800);
+    </script>
+
+</body>
+</html>
