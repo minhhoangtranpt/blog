@@ -3,377 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diễn đàn - MinhHoang Forum</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <title>Bắn Trứng - Game Vui Nhộn</title>
     <style>
-        :root {
-            --primary: #0066ff;
-            --dark: #1a1a1a;
-            --gray: #f4f4f4;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        /* Header */
-        header {
-            background: var(--dark);
-            color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(#87CEEB, #E0F7FA);
+            height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .logo span {
-            color: var(--primary);
-        }
-        
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 25px;
-        }
-        
-        nav a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        
-        nav a:hover {
-            color: var(--primary);
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-outline {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-        
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&q=80') center/cover no-repeat;
-            color: white;
-            text-align: center;
-            padding: 100px 20px;
-        }
-        
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 15px;
-        }
-        
-        .hero p {
-            font-size: 1.3rem;
-            max-width: 700px;
-            margin: 0 auto 30px;
-        }
-        
-        /* Main Content */
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 30px;
-        }
-        
-        /* Danh sách diễn đàn */
-        .forum-list {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-        
-        .forum-header {
-            background: var(--primary);
-            color: white;
-            padding: 18px 25px;
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-        
-        .forum-item {
-            padding: 20px 25px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .forum-item:last-child {
-            border-bottom: none;
-        }
-        
-        .forum-icon {
-            font-size: 42px;
-            color: var(--primary);
-            width: 60px;
-        }
-        
-        .forum-info {
-            flex: 1;
-        }
-        
-        .forum-info h3 {
-            margin-bottom: 5px;
-            color: #222;
-        }
-        
-        .forum-info p {
-            color: #666;
-            font-size: 0.95rem;
-        }
-        
-        .forum-stats {
-            text-align: right;
-            min-width: 120px;
-        }
-        
-        .forum-stats div {
-            font-size: 0.9rem;
-            color: #555;
-        }
-        
-        /* Sidebar */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-        
-        .sidebar-box {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
-        
-        .sidebar-box h3 {
-            margin-bottom: 15px;
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 8px;
-        }
-        
-        .online-users {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: #ddd;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: #666;
+            align-items: center;
+            overflow: hidden;
+            color: #333;
         }
-        
-        /* Footer */
-        footer {
-            background: #222;
-            color: #ccc;
+        .game-container {
             text-align: center;
-            padding: 40px 20px;
-            margin-top: 50px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            width: 800px;
         }
-        
-        @media (max-width: 992px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
+        header {
+            background: #FF5722;
+            color: white;
+            padding: 15px;
+            font-size: 2rem;
+            font-weight: bold;
         }
+        canvas {
+            background: #87CEEB;
+            display: block;
+            margin: 0 auto;
+        }
+        .info {
+            display: flex;
+            justify-content: space-around;
+            padding: 12px;
+            background: #FF9800;
+            color: white;
+            font-size: 1.2rem;
+        }
+        .controls {
+            padding: 15px;
+            background: #f5f5f5;
+            font-size: 1rem;
+        }
+        button {
+            margin-top: 10px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: #FF5722;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+        button:hover { background: #E64A19; }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <header>
-        <div class="header-content">
-            <a href="#" class="logo">Minh<span>Hoang</span>Forum</a>
-            
-            <nav>
-                <ul>
-                    <li><a href="#"><i class="fas fa-home"></i> Trang chủ</a></li>
-                    <li><a href="#">Diễn đàn</a></li>
-                    <li><a href="#">Thành viên</a></li>
-                    <li><a href="#">Tin tức</a></li>
-                </ul>
-            </nav>
-            
-            <div class="user-info">
-                <button class="btn btn-outline">Đăng nhập</button>
-                <button class="btn btn-primary">Đăng ký</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Hero -->
-    <section class="hero">
-        <h1>Chào mừng đến với MinhHoang Forum</h1>
-        <p>Nơi mọi người cùng trao đổi, học hỏi và chia sẻ kiến thức. Tham gia ngay hôm nay!</p>
-        <button class="btn btn-primary" style="padding: 14px 35px; font-size: 1.1rem;">
-            <i class="fas fa-plus"></i> Tạo chủ đề mới
-        </button>
-    </section>
-
-    <div class="container">
-
-        <!-- Main Forum List -->
-        <div class="forum-list">
-            <div class="forum-header">
-                <i class="fas fa-comments"></i> Các diễn đàn chính
-            </div>
-            
-            <div class="forum-item">
-                <div class="forum-icon"><i class="fas fa-laptop-code"></i></div>
-                <div class="forum-info">
-                    <h3>Công nghệ &amp; Lập trình</h3>
-                    <p>Thảo luận về lập trình, web, AI, mobile, phần cứng...</p>
-                </div>
-                <div class="forum-stats">
-                    <div><strong>12.458</strong> bài viết</div>
-                    <div><strong>892</strong> thành viên online</div>
-                </div>
-            </div>
-            
-            <div class="forum-item">
-                <div class="forum-icon"><i class="fas fa-graduation-cap"></i></div>
-                <div class="forum-info">
-                    <h3>Học tập &amp; Thi cử</h3>
-                    <p>Chia sẻ kinh nghiệm học tập, ôn thi, tài liệu học...</p>
-                </div>
-                <div class="forum-stats">
-                    <div><strong>8.234</strong> bài viết</div>
-                    <div><strong>456</strong> thành viên online</div>
-                </div>
-            </div>
-            
-            <div class="forum-item">
-                <div class="forum-icon"><i class="fas fa-gamepad"></i></div>
-                <div class="forum-info">
-                    <h3>Game &amp; Esports</h3>
-                    <p>Thảo luận game, build PC chơi game, giải đấu...</p>
-                </div>
-                <div class="forum-stats">
-                    <div><strong>15.672</strong> bài viết</div>
-                    <div><strong>1.234</strong> thành viên online</div>
-                </div>
-            </div>
-            
-            <div class="forum-item">
-                <div class="forum-icon"><i class="fas fa-car"></i></div>
-                <div class="forum-info">
-                    <h3>Ô tô - Xe máy</h3>
-                    <p>Thảo luận về xe, độ xe, kinh nghiệm mua bán...</p>
-                </div>
-                <div class="forum-stats">
-                    <div><strong>6.789</strong> bài viết</div>
-                    <div><strong>312</strong> thành viên online</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <!-- Thống kê -->
-            <div class="sidebar-box">
-                <h3><i class="fas fa-chart-bar"></i> Thống kê diễn đàn</h3>
-                <p><strong>45.872</strong> thành viên</p>
-                <p><strong>128.459</strong> bài viết</p>
-                <p><strong>8.234</strong> chủ đề</p>
-                <p><strong>1.245</strong> người đang online</p>
-            </div>
-            
-            <!-- Thành viên trực tuyến -->
-            <div class="sidebar-box">
-                <h3><i class="fas fa-users"></i> Đang trực tuyến (1.245)</h3>
-                <div class="online-users">
-                    <div class="user-avatar">MH</div>
-                    <div class="user-avatar">AN</div>
-                    <div class="user-avatar">KT</div>
-                    <div class="user-avatar">VN</div>
-                    <div class="user-avatar">Dev</div>
-                    <div class="user-avatar">Gamer</div>
-                </div>
-            </div>
-            
-            <!-- Chủ đề hot -->
-            <div class="sidebar-box">
-                <h3><i class="fas fa-fire"></i> Chủ đề nóng</h3>
-                <ul style="list-style: none; padding-left: 10px;">
-                    <li style="margin-bottom: 10px;">• <a href="#" style="text-decoration: none; color: #0066ff;">[Hỏi] Học React hay Next.js năm 2026?</a></li>
-                    <li style="margin-bottom: 10px;">• <a href="#" style="text-decoration: none; color: #0066ff;">Review iPhone 17 Pro Max</a></li>
-                    <li style="margin-bottom: 10px;">• <a href="#" style="text-decoration: none; color: #0066ff;">Cách tối ưu tốc độ website WordPress</a></li>
-                </ul>
-            </div>
-        </div>
+<div class="game-container">
+    <header>🥚 BẮN TRỨNG 🐔</header>
+    
+    <div class="info">
+        <div>Điểm: <span id="score">0</span></div>
+        <div>Mạng: <span id="lives">3</span></div>
+        <div>Cấp độ: <span id="level">1</span></div>
     </div>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2026 MinhHoang Forum - Tất cả quyền được bảo lưu.</p>
-        <p style="margin-top: 10px;">
-            <a href="#" style="color: #ccc; margin: 0 10px;">Điều khoản</a> |
-            <a href="#" style="color: #ccc; margin: 0 10px;">Quyền riêng tư</a> |
-            <a href="#" style="color: #ccc; margin: 0 10px;">Liên hệ</a>
-        </p>
-    </footer>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <div class="controls">
+        <strong>Hướng dẫn:</strong> ← → hoặc A D để di chuyển • Space hoặc Click để bắn trứng<br>
+        <button onclick="startGame()">Chơi Lại</button>
+    </div>
+</div>
+
+<script>
+// ==================== GAME VARIABLES ====================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let score = 0;
+let lives = 3;
+let level = 1;
+let gameRunning = false;
+
+let player = {
+    x: 400,
+    y: 420,
+    width: 60,
+    height: 50,
+    speed: 8
+};
+
+let bullets = [];     // Trứng bắn lên
+let eggs = [];        // Trứng rơi xuống (kẻ địch)
+let particles = [];   // Hiệu ứng nổ
+
+let keys = {};
+
+// ==================== DRAW FUNCTIONS ====================
+function drawPlayer() {
+    ctx.fillStyle = '#FF9800';
+    ctx.fillRect(player.x, player.y, player.width, player.height); // thân gà
+    
+    // Đầu gà
+    ctx.fillStyle = '#FF5722';
+    ctx.beginPath();
+    ctx.arc(player.x + 30, player.y - 10, 18, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Mỏ
+    ctx.fillStyle = '#FFEB3B';
+    ctx.beginPath();
+    ctx.moveTo(player.x + 40, player.y - 10);
+    ctx.lineTo(player.x + 55, player.y - 5);
+    ctx.lineTo(player.x + 40, player.y);
+    ctx.fill();
+    
+    ctx.fillStyle = '#000';
+    ctx.font = '20px Arial';
+    ctx.fillText('🐔', player.x + 18, player.y + 35);
+}
+
+function drawBullet(b) {
+    ctx.fillStyle = '#FFEB3B';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFF';
+    ctx.font = '12px Arial';
+    ctx.fillText('🥚', b.x - 8, b.y + 5);
+}
+
+function drawEgg(e) {
+    ctx.fillStyle = '#FFEB3B';
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y, 12, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFF176';
+    ctx.beginPath();
+    ctx.arc(e.x - 5, e.y - 5, 5, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawParticle(p) {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.alpha;
+    ctx.fillRect(p.x, p.y, 8, 8);
+    ctx.globalAlpha = 1;
+}
+
+// ==================== GAME LOGIC ====================
+function update() {
+    if (!gameRunning) return;
+
+    // Di chuyển người chơi
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.x -= player.speed;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) player.x += player.speed;
+
+    // Giới hạn màn hình
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+    // Cập nhật đạn (trứng bắn)
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= 12;
+        if (bullets[i].y < 0) bullets.splice(i, 1);
+    }
+
+    // Tạo trứng rơi ngẫu nhiên
+    if (Math.random() < 0.03 + level * 0.01) {
+        eggs.push({
+            x: Math.random() * (canvas.width - 40) + 20,
+            y: 30,
+            speed: 3 + level * 0.5
+        });
+    }
+
+    // Cập nhật trứng rơi
+    for (let i = eggs.length - 1; i >= 0; i--) {
+        eggs[i].y += eggs[i].speed;
+
+        // Va chạm với người chơi (mất mạng)
+        if (
+            eggs[i].x > player.x && 
+            eggs[i].x < player.x + player.width &&
+            eggs[i].y + 20 > player.y
+        ) {
+            lives--;
+            createExplosion(eggs[i].x, eggs[i].y, '#FF5722');
+            eggs.splice(i, 1);
+            if (lives <= 0) endGame();
+            continue;
+        }
+
+        // Trứng rơi khỏi màn hình
+        if (eggs[i].y > canvas.height) eggs.splice(i, 1);
+    }
+
+    // Va chạm đạn với trứng rơi
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = eggs.length - 1; j >= 0; j--) {
+            let dx = bullets[i].x - eggs[j].x;
+            let dy = bullets[i].y - eggs[j].y;
+            if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                createExplosion(eggs[j].x, eggs[j].y, '#FFEB3B');
+                bullets.splice(i, 1);
+                eggs.splice(j, 1);
+                score += 10;
+                break;
+            }
+        }
+    }
+
+    // Tăng cấp độ
+    if (score > level * 100) level++;
+
+    // Cập nhật particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].x += particles[i].vx;
+        particles[i].y += particles[i].vy;
+        particles[i].alpha -= 0.02;
+        if (particles[i].alpha <= 0) particles.splice(i, 1);
+    }
+}
+
+function createExplosion(x, y, color) {
+    for (let i = 0; i < 15; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.random() * 8 - 4,
+            vy: Math.random() * 8 - 4,
+            alpha: 1,
+            color: color
+        });
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Vẽ nền đơn giản
+    ctx.fillStyle = '#81D4FA';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawPlayer();
+
+    bullets.forEach(b => drawBullet(b));
+    eggs.forEach(e => drawEgg(e));
+    particles.forEach(p => drawParticle(p));
+
+    // Hiển thị thông tin trên canvas
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`Điểm: ${score}`, 20, 40);
+}
+
+// ==================== GAME LOOP ====================
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+// ==================== CONTROLS ====================
+document.addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if ((e.key === ' ' || e.key === 'Spacebar') && gameRunning) {
+        e.preventDefault();
+        bullets.push({
+            x: player.x + player.width / 2,
+            y: player.y - 10
+        });
+    }
+});
+
+document.addEventListener('keyup', e => {
+    keys[e.key] = false;
+});
+
+canvas.addEventListener('click', () => {
+    if (gameRunning) {
+        bullets.push({
+            x: player.x + player.width / 2,
+            y: player.y - 10
+        });
+    }
+});
+
+// ==================== START & END ====================
+function startGame() {
+    score = 0;
+    lives = 3;
+    level = 1;
+    bullets = [];
+    eggs = [];
+    particles = [];
+    player.x = 370;
+    gameRunning = true;
+    
+    document.getElementById('score').textContent = score;
+    document.getElementById('lives').textContent = lives;
+    document.getElementById('level').textContent = level;
+}
+
+function endGame() {
+    gameRunning = false;
+    alert(`🎮 Game Over!\nĐiểm số của bạn: ${score}\nCấp độ đạt được: ${level}`);
+}
+
+// Khởi động game
+startGame();
+gameLoop();
+</script>
 
 </body>
 </html>
