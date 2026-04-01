@@ -3,324 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bắn Trứng - Game Vui Nhộn</title>
+    <title>Bài Tập Vật Lý Trị Liệu Cho Đau Cổ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(#87CEEB, #E0F7FA);
-            height: 100vh;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .image-placeholder {
+            background-color: #f3f4f6;
+            border: 2px dashed #cbd5e1;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            overflow: hidden;
-            color: #333;
-        }
-        .game-container {
+            justify-content: center;
+            color: #64748b;
             text-align: center;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-            overflow: hidden;
-            width: 800px;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
         }
-        header {
-            background: #FF5722;
-            color: white;
-            padding: 15px;
-            font-size: 2rem;
-            font-weight: bold;
+        .image-placeholder:hover {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
         }
-        canvas {
-            background: #87CEEB;
-            display: block;
-            margin: 0 auto;
+        /* Custom Scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
         }
-        .info {
-            display: flex;
-            justify-content: space-around;
-            padding: 12px;
-            background: #FF9800;
-            color: white;
-            font-size: 1.2rem;
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
         }
-        .controls {
-            padding: 15px;
-            background: #f5f5f5;
-            font-size: 1rem;
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
-        button {
-            margin-top: 10px;
-            padding: 12px 30px;
-            font-size: 1.1rem;
-            background: #FF5722;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
+        .nav-item.active {
+            color: #2563eb;
+            font-weight: 600;
+            border-left: 3px solid #2563eb;
+            background-color: #eff6ff;
         }
-        button:hover { background: #E64A19; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800">
 
-<div class="game-container">
-    <header>🥚 BẮN TRỨNG 🐔</header>
-    
-    <div class="info">
-        <div>Điểm: <span id="score">0</span></div>
-        <div>Mạng: <span id="lives">3</span></div>
-        <div>Cấp độ: <span id="level">1</span></div>
+    <!-- Header / Hero Section -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-16 px-4 sm:px-6 lg:px-8 shadow-lg relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmYiLz48L3N2Zz4=')]"></div>
+        <div class="max-w-7xl mx-auto relative z-10 flex flex-col items-center text-center">
+            <div class="bg-blue-600/50 p-3 rounded-full mb-6 backdrop-blur-sm">
+                <i data-lucide="activity" class="w-10 h-10 text-blue-100"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Vật Lý Trị Liệu Chứng Đau Cổ</h1>
+            <p class="text-xl md:text-2xl text-blue-100 mb-6 font-light max-w-2xl">Hướng dẫn bài tập và phục hồi chức năng thần kinh cơ</p>
+            <div class="flex items-center gap-2 text-sm text-blue-200 bg-black/20 py-2 px-4 rounded-full">
+                <i data-lucide="user" class="w-4 h-4"></i>
+                <span>Prof. Laurent Pitance</span>
+                <span class="mx-2">•</span>
+                <i data-lucide="map-pin" class="w-4 h-4"></i>
+                <span>Việt Nam 2022</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col md:flex-row gap-8">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-1/4 hidden md:block">
+            <div class="sticky top-8 glass-card rounded-xl p-6 h-[calc(100vh-4rem)] overflow-y-auto sidebar-scroll">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Mục lục</h3>
+                <nav class="flex flex-col gap-1 space-y-1 text-sm text-slate-600" id="toc">
+                    <a href="#muc-tieu" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Mục tiêu bài tập</a>
+                    <a href="#tuan-thu" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Sự tuân thủ & Nguyên tắc</a>
+                    <a href="#chuong-trinh" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Chương trình thần kinh cơ</a>
+                    <a href="#tu-the" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Phục hồi tư thế</a>
+                    <a href="#bai-tap-co-ban" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Bài tập kích hoạt cơ bản</a>
+                    <a href="#bai-tap-nang-cao" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Bài tập chức năng</a>
+                    <a href="#tang-tien" class="nav-item block py-2 px-3 rounded-r-lg hover:bg-slate-100 transition-colors">Lộ trình tăng tiến (Graded)</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="w-full md:w-3/4 space-y-12">
+
+            <!-- Section: Mục tiêu -->
+            <section id="muc-tieu" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="target"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Mục tiêu của các bài tập</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-4">
+                            <i data-lucide="shield-check"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Giảm Đau</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">Có bằng chứng rõ ràng cho thấy các bài tập (cụ thể, tổng quát, tải trọng cao hay thấp) đều gây ra tác dụng giảm đau. <strong>Tính đặc thù của bài tập không quá quan trọng</strong> đối với mục tiêu này.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mb-4">
+                            <i data-lucide="brain-circuit"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Cải thiện thần kinh cơ</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">Để cải thiện sự kiểm soát và chức năng cơ bắp, các bài tập đặc thù <strong>"Tải trọng thấp" (Low Load)</strong> dường như mang lại hiệu quả cao nhất.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Sự tuân thủ & Nguyên tắc -->
+            <section id="tuan-thu" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="users"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Sự tuân thủ & Nguyên tắc tại nhà</h2>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100">
+                    <div class="p-6 md:p-8 space-y-6">
+                        <p class="text-slate-600 leading-relaxed text-lg font-medium text-center text-indigo-900 bg-indigo-50 p-4 rounded-lg">
+                            "Sự tuân thủ của bệnh nhân là yếu tố then chốt cho một chương trình tập luyện thành công."
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                            <div>
+                                <h4 class="font-bold flex items-center gap-2 text-slate-700 mb-4">
+                                    <i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5"></i> Các yếu tố thúc đẩy
+                                </h4>
+                                <ul class="space-y-3 text-sm text-slate-600">
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Giao tiếp lấy bệnh nhân làm trung tâm.</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Xác định động lực (VD: Giảm đau là động lực đầu tiên tốt nhất).</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Chương trình đơn giản, khả thi: Khuyến nghị ban đầu <strong>5-10 phút x 2 lần/ngày</strong>.</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Quay video bằng điện thoại để bệnh nhân thực hiện đúng ở nhà.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-bold flex items-center gap-2 text-slate-700 mb-4">
+                                    <i data-lucide="settings" class="text-slate-500 w-5 h-5"></i> Nguyên tắc thiết lập
+                                </h4>
+                                <ul class="space-y-3 text-sm text-slate-600">
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Cá nhân hóa theo sở thích của bệnh nhân.</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Đảm bảo sự đa dạng của bài tập để duy trì hứng thú.</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Thiết lập các mục tiêu tiến triển rõ ràng, có thể đánh giá được.</li>
+                                    <li class="flex items-start gap-2"><span class="text-blue-500 mt-1">•</span> Luôn đánh giá lại cách bệnh nhân tập: <em>"Bạn có thể cho tôi xem cách bạn đã tập tuần này không?"</em></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Chương trình thần kinh cơ -->
+            <section id="chuong-trinh" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="dumbbell"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Chương trình thần kinh cơ</h2>
+                </div>
+                
+                <div class="bg-slate-800 text-white rounded-xl p-6 md:p-8 mb-8 relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 opacity-10">
+                        <i data-lucide="zap" class="w-48 h-48"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Nguyên tắc cốt lõi</h3>
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10 text-slate-200">
+                        <li class="flex gap-3"><i data-lucide="arrow-right" class="text-blue-400 shrink-0 mt-1"></i> Bắt đầu sớm ngay trong những buổi điều trị đầu.</li>
+                        <li class="flex gap-3"><i data-lucide="arrow-right" class="text-blue-400 shrink-0 mt-1"></i> Bài tập <strong>KHÔNG</strong> được gây đau cổ.</li>
+                        <li class="flex gap-3"><i data-lucide="arrow-right" class="text-blue-400 shrink-0 mt-1"></i> Chú trọng <strong>Sự chính xác</strong> (đây là bài tập kiểm soát, không phải sức mạnh).</li>
+                        <li class="flex gap-3"><i data-lucide="arrow-right" class="text-blue-400 shrink-0 mt-1"></i> Sự lặp lại là yếu tố thiết yếu để học vận động đúng.</li>
+                    </ul>
+                </div>
+
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="trending-up" class="text-blue-600"></i> Tiến trình tập luyện (Low load -> High load)</h3>
+                <div class="space-y-4">
+                    <div class="flex items-stretch gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+                            <div class="w-0.5 h-full bg-blue-200 my-1"></div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1 pb-6">
+                            <h4 class="font-semibold text-slate-800">Kích hoạt cơ sâu</h4>
+                            <p class="text-sm text-slate-600">Cơ gập, cơ duỗi và các cơ quanh bả vai (axioscapular).</p>
+                        </div>
+                    </div>
+                    <div class="flex items-stretch gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">2</div>
+                            <div class="w-0.5 h-full bg-blue-200 my-1"></div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1 pb-6">
+                            <h4 class="font-semibold text-slate-800">Sự phối hợp (Coordination)</h4>
+                            <p class="text-sm text-slate-600">Phối hợp nhịp nhàng giữa cơ gập sâu và cơ nông.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-stretch gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">3</div>
+                            <div class="w-0.5 h-full bg-blue-200 my-1"></div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1 pb-6">
+                            <h4 class="font-semibold text-slate-800">Kiểm soát cơ trong các công việc chức năng</h4>
+                            <p class="text-sm text-slate-600">Mô phỏng lại các động tác làm việc, sinh hoạt hàng ngày.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-stretch gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">4</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-1">
+                            <h4 class="font-semibold text-slate-800">Sức bền & Sức mạnh (High load)</h4>
+                            <p class="text-sm text-slate-600">Huấn luyện sức bền ở nhiều cường độ co cơ khác nhau và tăng cường sức mạnh theo yêu cầu.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Phục hồi tư thế -->
+            <section id="tu-the" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="accessibility"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Phục hồi tư thế thẳng</h2>
+                </div>
+                <p class="text-slate-600 mb-6">Thực hiện ngay từ buổi đầu tiên. Tần suất: <strong>10 giây / mỗi 15 phút</strong>. Giúp giải phóng vùng cổ khỏi các căng thẳng không cần thiết và tạo điều kiện cho hệ cơ nâng đỡ hoạt động tốt.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="space-y-4">
+                        <div class="p-4 bg-white rounded-lg border-l-4 border-orange-400 shadow-sm">
+                            <h4 class="font-bold">A. Chỉnh sửa vùng thắt lưng-chậu</h4>
+                            <p class="text-sm text-slate-600 mt-1">Bắt đầu từ kích thích L5 (Không bắt đầu từ ngực!).</p>
+                        </div>
+                        <div class="p-4 bg-white rounded-lg border-l-4 border-blue-400 shadow-sm">
+                            <h4 class="font-bold">B. Định vị xương bả vai</h4>
+                            <p class="text-sm text-slate-600 mt-1">Đưa bả vai về vị trí sinh lý chuẩn.</p>
+                        </div>
+                        <div class="p-4 bg-white rounded-lg border-l-4 border-green-400 shadow-sm">
+                            <h4 class="font-bold">C. Gập chẩm 1 độ (Occipital lift)</h4>
+                            <p class="text-sm text-slate-600 mt-1">Tự vươn dài cổ (không rụt cổ) - Thích nghi với tư thế làm việc.</p>
+                        </div>
+                    </div>
+                    <div class="image-placeholder h-64">
+                        <i data-lucide="image" class="w-12 h-12 mb-3 opacity-50"></i>
+                        <span class="font-medium"></span>
+                        <span class="text-xs mt-2 text-slate-400">Slumpy position - correction</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Bài tập kích hoạt cơ bản -->
+            <section id="bai-tap-co-ban" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="person-standing"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Bài tập kích hoạt cơ bản</h2>
+                </div>
+
+                <div class="space-y-10">
+                    <!-- Bài 1 -->
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 text-blue-800">1. Đào tạo cơ gập sâu (Deep Flexors)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="image-placeholder h-56">
+                                <i data-lucide="image" class="w-10 h-10 mb-3 opacity-50"></i>
+                                <span class="font-medium"></span>
+                            </div>
+                            <div class="flex flex-col justify-center">
+                                <p class="text-slate-600 text-sm mb-4">Sử dụng bài kiểm tra gập sọ cổ (Craniocervical Flexion Test) với thiết bị đo áp suất. Bệnh nhân kiểm soát vùng cơ gập nông.</p>
+                                <ul class="space-y-2 text-sm text-slate-700 bg-white p-4 rounded-lg border border-slate-200">
+                                    <li><strong>Giai đoạn 1:</strong> 10 lần lặp lại, giữ 2-3 giây. Lên tới 28-30 mmHg mà không dùng cơ bù trừ.</li>
+                                    <li><strong>Giai đoạn 2:</strong> Sức bền 10 lần x 10 giây.</li>
+                                    <li><strong>Chuyển sang ngồi:</strong> Tập vươn dài cổ, duy trì áp lực, tiến tới co cơ đẳng trương 10s.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bài 2 -->
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 text-blue-800">2. Đồng co cơ gập (Sâu & Nông)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="flex flex-col justify-center order-2 md:order-1">
+                                <p class="text-slate-600 text-sm mb-4">Áp dụng khi bệnh nhân có thể duy trì tư thế đúng với hành động cơ sâu thích hợp.</p>
+                                <ul class="space-y-2 text-sm text-slate-700 bg-white p-4 rounded-lg border border-slate-200">
+                                    <li><strong>Động tác:</strong> Tự tạo lực cản đẳng trương xoay ở tư thế nằm ngửa hoặc ngồi thẳng.</li>
+                                    <li><strong>Mẹo:</strong> Hướng dẫn bệnh nhân nhìn vào lòng bàn tay khi tạo lực cản.</li>
+                                    <li><strong>Cường độ:</strong> Lực cản nhắm tới mức <strong>10%</strong> sức tối đa. Tăng dần co cơ - giữ - thả lỏng dần.</li>
+                                </ul>
+                            </div>
+                            <div class="image-placeholder h-56 order-1 md:order-2">
+                                <i data-lucide="image" class="w-10 h-10 mb-3 opacity-50"></i>
+                                <span class="font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bài 3 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-200">
+                        <div>
+                            <h3 class="text-lg font-bold mb-3">3. Kích hoạt cơ duỗi sâu</h3>
+                            <div class="image-placeholder h-48 mb-3">
+                                <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                                <span class="font-medium text-sm"></span>
+                            </div>
+                            <p class="text-sm text-slate-600">Tập trung kích hoạt nhóm cơ duỗi sâu (đặc biệt là cơ bán gai cổ - semispinalis cervicis).</p>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-3">4. Kích hoạt cơ thang dưới</h3>
+                            <div class="image-placeholder h-48 mb-3">
+                                <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                                <span class="font-medium text-sm"></span>
+                            </div>
+                            <p class="text-sm text-slate-600">Bài tập kiểm soát ngồi và làm việc với trọng lực để kích hoạt cơ thang dưới.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Bài tập chức năng -->
+            <section id="bai-tap-nang-cao" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="activity"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Bài tập đa phương thức & Chức năng</h2>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-6 mb-6">
+                    <p class="text-slate-700 text-sm mb-4">Các bài tập rèn luyện cơ sâu gập cổ (DCF) giải quyết thành công rối loạn điều phối thần kinh cơ, tuy nhiên <strong>cần một chế độ đa phương thức</strong> khi hướng tới việc phục hồi các chức năng suy yếu khác (sức bền, sức mạnh ở tải trọng cao).</p>
+                    
+                    <div class="image-placeholder h-64 mt-4 bg-white border-blue-200">
+                        <i data-lucide="image" class="w-10 h-10 mb-3 opacity-50 text-blue-400"></i>
+                        <span class="font-medium text-blue-900"></span>
+                        <span class="text-xs mt-2 text-blue-600 text-center max-w-md">Ví dụ: Bài tập gập, kéo cáp, tập tay vai kết hợp để mô phỏng hoạt động hằng ngày. 3x/tuần, 3 hiệp 20 lần.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Lộ trình tăng tiến -->
+            <section id="tang-tien" class="scroll-mt-8">
+                <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i data-lucide="bar-chart"></i></div>
+                    <h2 class="text-3xl font-bold text-slate-800">Lộ trình bộc lộ tăng dần (Graded Exposure)</h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-8">
+                    <p class="text-slate-700 mb-4">Đối với hội chứng chấn thương cổ họng (WAD) có hạn chế xoay cổ và đau rát. <strong>Mục tiêu cuối cùng: thực hiện mọi chuyển động mà không đau.</strong></p>
+                    
+                    <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600 mb-6 bg-slate-50 p-4 rounded-lg">
+                        <li>Thực hiện nhận biết trái/phải cho cổ. Tưởng tượng việc xoay cổ.</li>
+                        <li>Xoay cổ thụ động khi nằm ngửa.</li>
+                        <li>SNAGS xoay cổ khi ngồi.</li>
+                        <li>Xoay cổ chủ động với mắt nhắm.</li>
+                        <li>Xoay thân mình, giữ nguyên cổ.</li>
+                        <li>Xoay chủ động trong ô tô (tưởng tượng xe di chuyển) -> Lái xe đoạn ngắn -> Lái xe đường dài.</li>
+                    </ol>
+                </div>
+
+                <h3 class="text-xl font-bold mb-4 text-slate-800">Gia tăng biên độ vận động (ROM) với dụng cụ hỗ trợ</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="image-placeholder h-48">
+                        <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="font-medium text-sm text-center"></span>
+                        <span class="text-xs text-slate-400 mt-1">Gia tăng độ gập (Augmenting flexion)</span>
+                    </div>
+                    <div class="image-placeholder h-48">
+                        <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="font-medium text-sm text-center"></span>
+                        <span class="text-xs text-slate-400 mt-1">Gia tăng độ duỗi (Augmenting extension)</span>
+                    </div>
+                    <div class="image-placeholder h-48">
+                        <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="font-medium text-sm text-center"></span>
+                        <span class="text-xs text-slate-400 mt-1">Gia tăng nghiêng bên (Augmenting side flexion)</span>
+                    </div>
+                    <div class="image-placeholder h-48">
+                        <i data-lucide="image" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="font-medium text-sm text-center"></span>
+                        <span class="text-xs text-slate-400 mt-1">Gia tăng độ xoay (Augmenting rotation)</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
     </div>
 
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-sm">
+            <p>Tài liệu tóm tắt từ: "Physiotherapy for neck pain" - Prof. Laurent Pitance (Vietnam 2022)</p>
+            <p class="mt-2 text-slate-500">Thiết kế trực quan dựa trên tài liệu phục hồi chức năng y khoa.</p>
+        </div>
+    </footer>
 
-    <div class="controls">
-        <strong>Hướng dẫn:</strong> ← → hoặc A D để di chuyển • Space hoặc Click để bắn trứng<br>
-        <button onclick="startGame()">Chơi Lại</button>
-    </div>
-</div>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-<script>
-// ==================== GAME VARIABLES ====================
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+        // Simple Scrollspy for Sidebar Navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('section');
+            const navItems = document.querySelectorAll('.nav-item');
 
-let score = 0;
-let lives = 3;
-let level = 1;
-let gameRunning = false;
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    // Adjust threshold for sticky header
+                    if (scrollY >= (sectionTop - 150)) {
+                        current = section.getAttribute('id');
+                    }
+                });
 
-let player = {
-    x: 400,
-    y: 420,
-    width: 60,
-    height: 50,
-    speed: 8
-};
-
-let bullets = [];     // Trứng bắn lên
-let eggs = [];        // Trứng rơi xuống (kẻ địch)
-let particles = [];   // Hiệu ứng nổ
-
-let keys = {};
-
-// ==================== DRAW FUNCTIONS ====================
-function drawPlayer() {
-    ctx.fillStyle = '#FF9800';
-    ctx.fillRect(player.x, player.y, player.width, player.height); // thân gà
-    
-    // Đầu gà
-    ctx.fillStyle = '#FF5722';
-    ctx.beginPath();
-    ctx.arc(player.x + 30, player.y - 10, 18, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Mỏ
-    ctx.fillStyle = '#FFEB3B';
-    ctx.beginPath();
-    ctx.moveTo(player.x + 40, player.y - 10);
-    ctx.lineTo(player.x + 55, player.y - 5);
-    ctx.lineTo(player.x + 40, player.y);
-    ctx.fill();
-    
-    ctx.fillStyle = '#000';
-    ctx.font = '20px Arial';
-    ctx.fillText('🐔', player.x + 18, player.y + 35);
-}
-
-function drawBullet(b) {
-    ctx.fillStyle = '#FFEB3B';
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFF';
-    ctx.font = '12px Arial';
-    ctx.fillText('🥚', b.x - 8, b.y + 5);
-}
-
-function drawEgg(e) {
-    ctx.fillStyle = '#FFEB3B';
-    ctx.beginPath();
-    ctx.ellipse(e.x, e.y, 12, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFF176';
-    ctx.beginPath();
-    ctx.arc(e.x - 5, e.y - 5, 5, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-function drawParticle(p) {
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = p.alpha;
-    ctx.fillRect(p.x, p.y, 8, 8);
-    ctx.globalAlpha = 1;
-}
-
-// ==================== GAME LOGIC ====================
-function update() {
-    if (!gameRunning) return;
-
-    // Di chuyển người chơi
-    if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.x -= player.speed;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) player.x += player.speed;
-
-    // Giới hạn màn hình
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-
-    // Cập nhật đạn (trứng bắn)
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        bullets[i].y -= 12;
-        if (bullets[i].y < 0) bullets.splice(i, 1);
-    }
-
-    // Tạo trứng rơi ngẫu nhiên
-    if (Math.random() < 0.03 + level * 0.01) {
-        eggs.push({
-            x: Math.random() * (canvas.width - 40) + 20,
-            y: 30,
-            speed: 3 + level * 0.5
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('href').includes(current) && current !== '') {
+                        item.classList.add('active');
+                    }
+                });
+            });
         });
-    }
-
-    // Cập nhật trứng rơi
-    for (let i = eggs.length - 1; i >= 0; i--) {
-        eggs[i].y += eggs[i].speed;
-
-        // Va chạm với người chơi (mất mạng)
-        if (
-            eggs[i].x > player.x && 
-            eggs[i].x < player.x + player.width &&
-            eggs[i].y + 20 > player.y
-        ) {
-            lives--;
-            createExplosion(eggs[i].x, eggs[i].y, '#FF5722');
-            eggs.splice(i, 1);
-            if (lives <= 0) endGame();
-            continue;
-        }
-
-        // Trứng rơi khỏi màn hình
-        if (eggs[i].y > canvas.height) eggs.splice(i, 1);
-    }
-
-    // Va chạm đạn với trứng rơi
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        for (let j = eggs.length - 1; j >= 0; j--) {
-            let dx = bullets[i].x - eggs[j].x;
-            let dy = bullets[i].y - eggs[j].y;
-            if (Math.sqrt(dx*dx + dy*dy) < 25) {
-                createExplosion(eggs[j].x, eggs[j].y, '#FFEB3B');
-                bullets.splice(i, 1);
-                eggs.splice(j, 1);
-                score += 10;
-                break;
-            }
-        }
-    }
-
-    // Tăng cấp độ
-    if (score > level * 100) level++;
-
-    // Cập nhật particles
-    for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].x += particles[i].vx;
-        particles[i].y += particles[i].vy;
-        particles[i].alpha -= 0.02;
-        if (particles[i].alpha <= 0) particles.splice(i, 1);
-    }
-}
-
-function createExplosion(x, y, color) {
-    for (let i = 0; i < 15; i++) {
-        particles.push({
-            x: x,
-            y: y,
-            vx: Math.random() * 8 - 4,
-            vy: Math.random() * 8 - 4,
-            alpha: 1,
-            color: color
-        });
-    }
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Vẽ nền đơn giản
-    ctx.fillStyle = '#81D4FA';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    drawPlayer();
-
-    bullets.forEach(b => drawBullet(b));
-    eggs.forEach(e => drawEgg(e));
-    particles.forEach(p => drawParticle(p));
-
-    // Hiển thị thông tin trên canvas
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(`Điểm: ${score}`, 20, 40);
-}
-
-// ==================== GAME LOOP ====================
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-// ==================== CONTROLS ====================
-document.addEventListener('keydown', e => {
-    keys[e.key] = true;
-    if ((e.key === ' ' || e.key === 'Spacebar') && gameRunning) {
-        e.preventDefault();
-        bullets.push({
-            x: player.x + player.width / 2,
-            y: player.y - 10
-        });
-    }
-});
-
-document.addEventListener('keyup', e => {
-    keys[e.key] = false;
-});
-
-canvas.addEventListener('click', () => {
-    if (gameRunning) {
-        bullets.push({
-            x: player.x + player.width / 2,
-            y: player.y - 10
-        });
-    }
-});
-
-// ==================== START & END ====================
-function startGame() {
-    score = 0;
-    lives = 3;
-    level = 1;
-    bullets = [];
-    eggs = [];
-    particles = [];
-    player.x = 370;
-    gameRunning = true;
-    
-    document.getElementById('score').textContent = score;
-    document.getElementById('lives').textContent = lives;
-    document.getElementById('level').textContent = level;
-}
-
-function endGame() {
-    gameRunning = false;
-    alert(`🎮 Game Over!\nĐiểm số của bạn: ${score}\nCấp độ đạt được: ${level}`);
-}
-
-// Khởi động game
-startGame();
-gameLoop();
-</script>
-
+    </script>
 </body>
 </html>
