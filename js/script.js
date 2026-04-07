@@ -1,10 +1,10 @@
 function processFile() {
-    console.log("Nút tính toán đã được nhấn.");
     const fileInput = document.getElementById('fileInput');
     const resultDiv = document.getElementById('result');
+    const windowMsInput = document.getElementById('windowMs');
     
     if (!fileInput.files.length) {
-        alert("Vui lòng chọn file .txt trước!");
+        alert("Vui lòng chọn file .txt!");
         return;
     }
 
@@ -12,27 +12,20 @@ function processFile() {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        console.log("Đã đọc xong file.");
         const text = e.target.result;
         const lines = text.split(/\r?\n/);
         
-        // Tìm dòng bắt đầu dữ liệu
         let dataStartIndex = -1;
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes("Time (s)")) {
-                dataStartIndex = i + 1;
-                // Nếu có 2 dòng tiêu đề, hãy tăng thêm 1
-                if (lines[i+1] && lines[i+1].includes("TOTAL")) {
-                    dataStartIndex = i + 2;
-                }
+                // Kiểm tra nếu có hàng tiêu đề phụ (TOTAL, DIO, A, B)
+                dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
                 break;
             }
         }
 
-        console.log("Dữ liệu bắt đầu từ dòng số:", dataStartIndex);
-
-        if (dataStartIndex === -1 || dataStartIndex >= lines.length) {
-            resultDiv.innerHTML = "Lỗi: Không tìm thấy vùng dữ liệu hợp lệ.";
+        if (dataStartIndex === -1) {
+            resultDiv.innerHTML = "<p style='color:red;'>Lỗi: Không tìm thấy định dạng TwinPlates.</p>";
             return;
         }
 
@@ -42,67 +35,77 @@ function processFile() {
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
-
             const cols = line.split('\t');
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]);
-
+            const fz = parseFloat(cols[1]); // Cột Fz của TOTAL
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
                 fzData.push(fz);
             }
         }
 
-        console.log(`Đã trích xuất được ${timeData.length} dòng dữ liệu.`);
-
-        if (timeData.length === 0) {
-            resultDiv.innerHTML = "Lỗi: Không có dữ liệu số.";
-            return;
-        }
-
         try {
-            // TÍNH TOÁN
-            // 1. Lấy dữ liệu 5s đầu để tính Baseline
+            // --- 1. TÍNH BASELINE & NGƯỠNG ---
             const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
             const meanFz5s = jStat.mean(fz5s);
+            const thresholdT0 = 0.025 * meanFz5s;
 
-            // 2. Tìm T1 (Max Fz trong 10s đầu)
+            // --- 2. TÌM T1 (MAX TRONG 10S ĐẦU) ---
             let maxFz = -Infinity;
-            let T1 = 0;
+            let T1_idx = 0;
             for (let i = 0; i < timeData.length; i++) {
                 if (timeData[i] > 10.0) break;
                 if (fzData[i] > maxFz) {
                     maxFz = fzData[i];
-                    T1 = timeData[i];
+                    T1_idx = i;
                 }
             }
+            const T1 = timeData[T1_idx];
 
-            // 3. Tìm T0 (Fz < 2.5% của Mean 5s)
-            const thresholdT0 = 0.025 * meanFz5s;
-            let T0 = "Không tìm thấy";
-            for (let i = 0; i < fzData.length; i++) {
-                if (fzData[i] < thresholdT0) {
-                    T0 = timeData[i].toFixed(4);
+            // --- 3. TÌM T0 (LINH HOẠT TRƯỚC T1) ---
+            // Tự động tính số mẫu dựa trên Ms người dùng nhập và Sample Rate của file
+            const sampleRate = 1 / (timeData[1] - timeData[0]); 
+            const windowSize = Math.ceil((windowMsInput.value / 1000) * sampleRate);
+            
+            let T0_val = "Không tìm thấy";
+            for (let i = 0; i <= T1_idx - windowSize; i++) {
+                let isStable = true;
+                for (let j = 0; j < windowSize; j++) {
+                    if (fzData[i + j] >= thresholdT0) {
+                        isStable = false;
+                        break;
+                    }
+                }
+                if (isStable) {
+                    T0_val = timeData[i].toFixed(4);
                     break;
                 }
             }
 
-            // HIỂN THỊ
+            // --- 4. HIỂN THỊ KẾT QUẢ ---
             resultDiv.innerHTML = `
-                <div style="border:1px solid #ccc; padding:15px; margin-top:10px; background:#f9f9f9;">
-                    <h3>Kết quả tính toán:</h3>
-                    <p>Trung bình Fz (5s đầu): <b>${meanFz5s.toFixed(2)} N</b></p>
-                    <p>Ngưỡng T0 (2.5%): <b>${thresholdT0.toFixed(2)} N</b></p>
-                    <hr>
-                    <p><strong>T0:</strong> ${T0} s</p>
-                    <p><strong>T1:</strong> ${T1.toFixed(4)} s (Fz max: ${maxFz.toFixed(2)} N)</p>
+                <div class="card card-full animate-fade">
+                    <h3>Thông số nền (0 - 5.0s)</h3>
+                    <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N (Lực TB)</span></div>
+                    <div class="unit">Ngưỡng T0 xác định tại: ${thresholdT0.toFixed(2)} N</div>
+                </div>
+                
+                <div class="card animate-fade" style="border-left: 5px solid #ef4444;">
+                    <h3>Mốc T0 (Khởi phát)</h3>
+                    <div class="value">${T0_val}</div>
+                    <div class="unit">giây (Duy trì dưới ngưỡng ${windowMsInput.value}ms)</div>
+                </div>
+
+                <div class="card animate-fade" style="border-left: 5px solid #10b981;">
+                    <h3>Mốc T1 (Cực đại)</h3>
+                    <div class="value">${T1.toFixed(4)}</div>
+                    <div class="unit">giây (Fz max: ${maxFz.toFixed(2)} N)</div>
                 </div>
             `;
-            console.log("Hoàn tất tính toán.");
 
         } catch (err) {
-            console.error("Lỗi tính toán:", err);
-            resultDiv.innerHTML = "Lỗi trong quá trình tính toán: " + err.message;
+            console.error(err);
+            resultDiv.innerHTML = "Có lỗi xảy ra khi xử lý dữ liệu số.";
         }
     };
 
