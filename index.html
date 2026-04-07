@@ -401,12 +401,15 @@
         </div>
     </footer>
 
+    <script src="/common.js"></script>
     <script>
         // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Simple Scrollspy for Sidebar Navigation
         document.addEventListener('DOMContentLoaded', function() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // Simple Scrollspy for Sidebar Navigation
             const sections = document.querySelectorAll('section');
             const navItems = document.querySelectorAll('.nav-item');
 

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload và Xử Lý Dữ Liệu - Vật Lý Trị Liệu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .upload-zone {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px dashed #0284c7;
+            transition: all 0.3s ease;
+        }
+        .upload-zone.dragover {
+            background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+            border-color: #0ea5e9;
+            background-color: #e0f2fe;
+        }
+        .data-table {
+            font-size: 0.875rem;
+        }
+        .data-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .data-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Main Layout -->
+    <div class="min-h-screen flex flex-col">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-blue-600/50 p-2 rounded-full backdrop-blur-sm">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 text-blue-100"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold">Upload & Xử Lý Dữ Liệu</h1>
+                </div>
+                <p class="text-blue-100 text-lg">Tải lên file text (.txt) và phân tích dữ liệu một cách dễ dàng</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+            
+            <!-- Upload Section -->
+            <section class="mb-10">
+                <div class="upload-zone rounded-xl p-12 text-center cursor-pointer transition-all" id="uploadZone">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="bg-blue-100 p-4 rounded-full">
+                            <i data-lucide="file-up" class="w-8 h-8 text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800 mb-2">Kéo thả hoặc nhấp để chọn file</h2>
+                            <p class="text-slate-600">Hỗ trợ file .txt (tối đa 5MB)</p>
+                        </div>
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            accept=".txt" 
+                            class="hidden"
+                            aria-label="Chọn file txt"
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <!-- File Info & Actions -->
+            <div id="fileInfo" class="hidden mb-10 glass-card rounded-xl p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+                    <div>
+                        <p class="text-sm text-slate-500 mb-1">Tên file:</p>
+                        <h3 class="text-lg font-semibold text-slate-800" id="fileName"></h3>
+                    </div>
+                    <div class="flex gap-3">
+                        <button 
+                            id="downloadBtn" 
+                            class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                            title="Tải xuống file xử lý">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            Tải xuống
+                        </button>
+                        <button 
+                            id="clearBtn" 
+                            class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                            title="Xóa file">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Xóa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistics Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <p class="text-sm text-slate-600 mb-1">Tổng dòng</p>
+                        <p class="text-2xl font-bold text-blue-600" id="lineCount">0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                        <p class="text-sm text-slate-600 mb-1">Tổng từ</p>
+                        <p class="text-2xl font-bold text-purple-600" id="wordCount">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                        <p class="text-sm text-slate-600 mb-1">Tổng ký tự</p>
+                        <p class="text-2xl font-bold text-green-600" id="charCount">0</p>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                        <p class="text-sm text-slate-600 mb-1">Kích thước file</p>
+                        <p class="text-2xl font-bold text-orange-600" id="fileSize">0 KB</p>
+                    </div>
+                </div>
+
+                <!-- Tools Section -->
+                <div class="bg-slate-50 rounded-lg p-6 mb-8">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-blue-600"></i>
+                        Công cụ xử lý dữ liệu
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="searchInput" class="block text-sm font-medium mb-2 text-slate-700">Tìm kiếm dòng</label>
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                placeholder="Nhập từ để tìm kiếm..."
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+                        <div>
+                            <label for="filterEmpty" class="block text-sm font-medium mb-2 text-slate-700">Lọc dữ liệu</label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    id="filterEmpty" 
+                                    class="w-4 h-4 rounded border-slate-300"
+                                >
+                                <span class="text-sm text-slate-700">Ẩn dòng trống</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="caseSensitive" class="block text-sm font-medium mb-2 text-slate-700">Tùy chọn</label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    id="caseSensitive" 
+                                    class="w-4 h-4 rounded border-slate-300"
+                                >
+                                <span class="text-sm text-slate-700">Phân biệt chữ hoa/thường</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Preview Section -->
+            <div id="dataPreview" class="hidden">
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="eye" class="w-5 h-5 text-blue-600"></i>
+                        Xem trước dữ liệu
+                    </h3>
+                    <div class="glass-card rounded-lg overflow-hidden border border-slate-200">
+                        <div class="overflow-x-auto">
+                            <table class="w-full data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">STT</th>
+                                        <th>Nội dung dòng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-12">
+                <div class="bg-slate-100 rounded-full p-6 inline-block mb-4">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-400"></i>
+                </div>
+                <p class="text-slate-600 text-lg">Chưa có file được tải lên</p>
+                <p class="text-slate-500 text-sm mt-1">Kéo thả hoặc chọn file txt ở trên để bắt đầu</p>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-slate-900 text-slate-400 py-6 text-center mt-auto">
+            <div class="max-w-5xl mx-auto px-4">
+                <p class="text-sm">© 2024 Hệ thống Vật Lý Trị Liệu. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/common.js"></script>
+    <script>
+        let currentFileContent = '';
+        let currentFileName = '';
+        let currentLines = [];
+
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const emptyState = document.getElementById('emptyState');
+        const dataPreview = document.getElementById('dataPreview');
+        const fileName = document.getElementById('fileName');
+        const lineCount = document.getElementById('lineCount');
+        const wordCount = document.getElementById('wordCount');
+        const charCount = document.getElementById('charCount');
+        const fileSize = document.getElementById('fileSize');
+        const dataTable = document.getElementById('dataTable');
+        const searchInput = document.getElementById('searchInput');
+        const filterEmpty = document.getElementById('filterEmpty');
+        const caseSensitive = document.getElementById('caseSensitive');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Upload Zone Click
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // File Input Change
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileUpload(file);
+            }
+        });
+
+        // Drag and Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'text/plain') {
+                handleFileUpload(file);
+            } else {
+                alert('Vui lòng chọn file .txt');
+            }
+        });
+
+        // Handle File Upload
+        function handleFileUpload(file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File quá lớn. Vui lòng chọn file dưới 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentFileContent = e.target.result;
+                currentFileName = file.name;
+                currentLines = currentFileContent.split('\n');
+                
+                // Update UI
+                fileName.textContent = currentFileName;
+                fileSize.textContent = (file.size / 1024).toFixed(2) + ' KB';
+                
+                // Calculate statistics
+                updateStatistics();
+                
+                // Show/hide sections
+                uploadZone.classList.add('hidden');
+                emptyState.classList.add('hidden');
+                fileInfo.classList.remove('hidden');
+                dataPreview.classList.remove('hidden');
+                
+                // Render table
+                renderDataTable();
+                
+                // Re-initialize Lucide Icons
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Update Statistics
+        function updateStatistics() {
+            lineCount.textContent = currentLines.length;
+            
+            // Count words
+            const words = currentFileContent.split(/\s+/).filter(w => w.length > 0);
+            wordCount.textContent = words.length;
+            
+            // Count characters
+            charCount.textContent = currentFileContent.length;
+        }
+
+        // Render Data Table
+        function renderDataTable() {
+            dataTable.innerHTML = '';
+            
+            let filteredLines = [...currentLines];
+            
+            // Apply filters
+            if (filterEmpty.checked) {
+                filteredLines = filteredLines.filter(line => line.trim().length > 0);
+            }
+            
+            if (searchInput.value.trim()) {
+                const searchTerm = caseSensitive.checked ? 
+                    searchInput.value : 
+                    searchInput.value.toLowerCase();
+                
+                filteredLines = filteredLines.filter(line => {
+                    const lineToSearch = caseSensitive.checked ? 
+                        line : 
+                        line.toLowerCase();
+                    return lineToSearch.includes(searchTerm);
+                });
+            }
+            
+            // Render rows
+            filteredLines.forEach((line, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="text-slate-500 font-medium">${index + 1}</td>
+                    <td class="text-slate-700">${escapeHtml(line)}</td>
+                `;
+                dataTable.appendChild(row);
+            });
+            
+            if (filteredLines.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="2" class="py-8 text-center text-slate-500">Không tìm thấy dữ liệu</td>
+                `;
+                dataTable.appendChild(row);
+            }
+        }
+
+        // Search and Filter Events
+        searchInput.addEventListener('input', renderDataTable);
+        filterEmpty.addEventListener('change', renderDataTable);
+        caseSensitive.addEventListener('change', renderDataTable);
+
+        // Download Button
+        downloadBtn.addEventListener('click', () => {
+            const filteredContent = getFilteredContent();
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(filteredContent));
+            element.setAttribute('download', 'processed_' + currentFileName);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        });
+
+        // Get Filtered Content
+        function getFilteredContent() {
+            let filteredLines = [...currentLines];
+            
+            if (filterEmpty.checked) {
+                filteredLines = filteredLines.filter(line => line.trim().length > 0);
+            }
+            
+            if (searchInput.value.trim()) {
+                const searchTerm = caseSensitive.checked ? 
+                    searchInput.value : 
+                    searchInput.value.toLowerCase();
+                
+                filteredLines = filteredLines.filter(line => {
+                    const lineToSearch = caseSensitive.checked ? 
+                        line : 
+                        line.toLowerCase();
+                    return lineToSearch.includes(searchTerm);
+                });
+            }
+            
+            return filteredLines.join('\n');
+        }
+
+        // Clear Button
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Bạn có chắc chắn muốn xóa file?')) {
+                currentFileContent = '';
+                currentFileName = '';
+                currentLines = [];
+                fileInput.value = '';
+                
+                // Reset UI
+                fileInfo.classList.add('hidden');
+                dataPreview.classList.add('hidden');
+                uploadZone.classList.remove('hidden');
+                emptyState.classList.remove('hidden');
+                searchInput.value = '';
+                filterEmpty.checked = false;
+                caseSensitive.checked = false;
+            }
+        });
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
