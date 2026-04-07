@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giới Thiệu - Vật Lý Trị Liệu Cho Đau Cổ</title>
+    <title>Giới Thiệu - minhhoangpt</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -26,175 +26,167 @@
 <body class="bg-slate-50 text-slate-800">
 
     <!-- Header -->
-    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
-        <div class="max-w-5xl mx-auto">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="bg-blue-600/50 p-2 rounded-full backdrop-blur-sm">
-                    <i data-lucide="info" class="w-8 h-8 text-blue-100"></i>
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-2">
+                        <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">minhhoangpt</span>
                 </div>
-                <h1 class="text-3xl md:text-4xl font-bold">Giới Thiệu Về Chương Trình</h1>
+                <nav class="hidden md:flex gap-1">
+                    <a href="/" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Trang Chủ</a>
+                    <a href="/pages/upload.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Upload Dữ Liệu</a>
+                    <a href="/pages/about.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Giới Thiệu</a>
+                    <a href="/pages/contact.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Liên Hệ</a>
+                </nav>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="p-2 rounded-md text-slate-700 hover:bg-slate-100">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </div>
-            <p class="text-blue-100 text-lg">Tìm hiểu thêm về vật lý trị liệu cho đau cổ và phương pháp điều trị của chúng tôi</p>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-200">
+            <a href="/" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Trang Chủ</a>
+            <a href="/pages/upload.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Upload Dữ Liệu</a>
+            <a href="/pages/about.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Giới Thiệu</a>
+            <a href="/pages/contact.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Liên Hệ</a>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
         
-        <!-- Program Overview Section -->
+        <!-- Hero Section -->
         <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6 text-slate-800">Chương Trình Vật Lý Trị Liệu</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                <div class="glass-card rounded-xl p-8">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
-                            <i data-lucide="zap" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-slate-800">Tại Sao Bài Tập Lại Quan Trọng?</h3>
-                    </div>
-                    <p class="text-slate-700 leading-relaxed mb-4">
-                        Các bài tập vật lý trị liệu không chỉ giảm đau mà còn cải thiện chức năng thần kinh cơ. Sự tuân thủ của bệnh nhân và lặp lại các bài tập là yếu tố then chốt cho sự thành công của chương trình.
-                    </p>
-                    <p class="text-slate-600 text-sm">
-                        <strong>Khuyến cáo:</strong> Bắt đầu với 5-10 phút mỗi ngày, 2 lần, và tăng dần theo khả năng.
-                    </p>
-                </div>
-
-                <div class="glass-card rounded-xl p-8">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-green-100 p-3 rounded-lg text-green-600">
-                            <i data-lucide="trending-up" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-slate-800">Lộ Trình Tiến Triển</h3>
-                    </div>
-                    <p class="text-slate-700 leading-relaxed mb-4">
-                        Chương trình được thiết kế theo 4 giai đoạn, bắt đầu từ kích hoạt cơ sâu cho đến phát triển sức bền và sức mạnh với tải trọng cao.
-                    </p>
-                    <p class="text-slate-600 text-sm">
-                        <strong>Mục tiêu:</strong> Khôi phục chức năng toàn diện và ngăn ngừa tái phát.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Core Principles Section -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6 text-slate-800">Nguyên Tắc Cốt Lõi</h2>
-            
-            <div class="space-y-4">
-                <div class="bg-white rounded-xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex items-start gap-4">
-                        <div class="bg-blue-100 rounded-full p-3 mt-1">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-blue-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-slate-800 mb-2">Không Gây Đau</h4>
-                            <p class="text-slate-600">Các bài tập không được gây ra tình trạng đau ở vùng cổ. Điều này giúp bệnh nhân cảm thấy an toàn và có động lực tiếp tục luyện tập.</p>
+            <div class="text-center space-y-6">
+                <!-- Avatar -->
+                <div class="flex justify-center">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full blur-lg opacity-25"></div>
+                        <div class="relative bg-gradient-to-br from-blue-500 to-blue-700 rounded-full p-6">
+                            <i data-lucide="user" class="w-20 h-20 text-white"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex items-start gap-4">
-                        <div class="bg-purple-100 rounded-full p-3 mt-1">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-purple-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-slate-800 mb-2">Chính Xác Trước Sức Mạnh</h4>
-                            <p class="text-slate-600">Độ chính xác kỹ thuật là ưu tiên hàng đầu. Những bài tập được thực hiện chính xác sẽ có hiệu quả cao hơn nhiều so với bài tập nhanh nhưng thiếu điều khiển.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex items-start gap-4">
-                        <div class="bg-green-100 rounded-full p-3 mt-1">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-slate-800 mb-2">Lặp Lại Là Chìa Khóa</h4>
-                            <p class="text-slate-600">Sự lặp lại liên tục giúp cơ thể học tập và thích ứng. Một lịch trình tập luyện nhất quán sẽ mang lại kết quả tốt nhất.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="flex items-start gap-4">
-                        <div class="bg-orange-100 rounded-full p-3 mt-1">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-orange-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-slate-800 mb-2">Sự Tuân Thủ Của Bệnh Nhân</h4>
-                            <p class="text-slate-600">Sự cam kết và tuân thủ của bệnh nhân là yếu tố then chốt. Cần có giao tiếp hiệu quả và động lực để duy trì chương trình dài hạn.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Training Phases Section -->
-        <section class="mb-12">
-            <h2 class="text-3xl font-bold mb-6 text-slate-800">4 Giai Đoạn Huấn Luyện</h2>
-            
-            <div class="space-y-4">
-                <div class="relative pl-8 border-l-4 border-blue-400 pb-6">
-                    <div class="absolute -left-4 bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
-                    <h4 class="text-lg font-bold text-slate-800 mb-2">Kích Hoạt Cơ Sâu (Deep Muscle Activation)</h4>
-                    <p class="text-slate-600">Tập trung vào kích hoạt các cơ gập, duỗi và cơ quanh bả vai để xây dựng nền tảng kiểm soát cơ.</p>
-                </div>
-
-                <div class="relative pl-8 border-l-4 border-purple-400 pb-6">
-                    <div class="absolute -left-4 bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
-                    <h4 class="text-lg font-bold text-slate-800 mb-2">Phối Hợp và Điều Hòa (Coordination)</h4>
-                    <p class="text-slate-600">Phát triển sự phối hợp nhịp nhàng giữa các nhóm cơ sâu và nông để cải thiện kiểm soát động tác.</p>
-                </div>
-
-                <div class="relative pl-8 border-l-4 border-green-400 pb-6">
-                    <div class="absolute -left-4 bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
-                    <h4 class="text-lg font-bold text-slate-800 mb-2">Kiểm Soát Chức Năng (Functional Control)</h4>
-                    <p class="text-slate-600">Áp dụng các kỹ năng vào các hoạt động hàng ngày như làm việc, sinh hoạt để đảm bảo khả năng áp dụng thực tế.</p>
-                </div>
-
-                <div class="relative pl-8 border-l-4 border-orange-400">
-                    <div class="absolute -left-4 bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
-                    <h4 class="text-lg font-bold text-slate-800 mb-2">Sức Bền & Sức Mạnh (Endurance & Strength)</h4>
-                    <p class="text-slate-600">Xây dựng sức bền ở các cường độ khác nhau và phát triển sức mạnh để đáp ứng nhu cầu hoạt động cao hơn.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Author Section -->
-        <section class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-100">
-            <div class="flex flex-col md:flex-row items-center gap-8">
-                <div class="flex-shrink-0">
-                    <div class="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                        <i data-lucide="user-check" class="w-12 h-12"></i>
-                    </div>
-                </div>
+                <!-- Name and Title -->
                 <div>
-                    <h3 class="text-2xl font-bold text-slate-800 mb-2">Prof. Laurent Pitance</h3>
-                    <p class="text-slate-700 mb-3">
-                        Tài liệu này được biên soạn dựa trên nghiên cứu và kinh nghiệm lâm sàng của Prof. Laurent Pitance, một chuyên gia hàng đầu trong lĩnh vực vật lý trị liệu.
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-3">Trần Minh Hoàng</h1>
+                    <p class="text-xl text-blue-600 font-semibold mb-4">Cử Nhân Vật Lý Trị Liệu</p>
+                    <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                        Đại học Y Dược Thành Phố Hồ Chí Minh<br>
+                        Khóa 2020-2024
                     </p>
-                    <div class="flex items-center gap-2 text-slate-600">
-                        <i data-lucide="map-pin" class="w-4 h-4"></i>
-                        <span>Việt Nam, 2022</span>
-                    </div>
                 </div>
             </div>
+        </section>
+
+        <!-- Main Info Section -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="glass-card rounded-xl p-8 text-center">
+                    <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="graduation-cap" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Học Vấn</h3>
+                    <p class="text-slate-600 text-sm">
+                        Cử nhân chuyên ngành Vật Lý Trị Liệu
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-xl p-8 text-center">
+                    <div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="book-open" class="w-8 h-8 text-green-600"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Chuyên Môn</h3>
+                    <p class="text-slate-600 text-sm">
+                        Vật lý trị liệu, phục hồi chức năng, và chăm sóc sức khỏe
+                    </p>
+                </div>
+
+                <div class="glass-card rounded-xl p-8 text-center">
+                    <div class="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="heart-handshake" class="w-8 h-8 text-purple-600"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Đam Mê</h3>
+                    <p class="text-slate-600 text-sm">
+                        Giúp đỡ bệnh nhân phục hồi sức khỏe
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Content -->
+        <section class="mb-12">
+            <div class="glass-card rounded-xl p-8 md:p-12">
+                <h2 class="text-3xl font-bold mb-6 text-slate-800">Về Tôi</h2>
+                <div class="space-y-6 text-slate-700 leading-relaxed">
+                    <p>
+                        Xin chào! Tôi là <strong>Trần Minh Hoàng</strong>, một cử nhân vật lý trị liệu tốt nghiệp từ Đại học Y Dược Thành Phố Hồ Chí Minh khóa 2020-2024.
+                    </p>
+                    <p>
+                        Với kiến thức chuyên sâu về vật lý trị liệu, phục hồi chức năng và khoa học y học, tôi cam kết mang lại những giải pháp chất lượng cao để giúp bệnh nhân cải thiện sức khỏe và chất lượng cuộc sống.
+                    </p>
+                    <p>
+                        Website này được xây dựng với mục đích chia sẻ kiến thức, công cụ hỗ trợ xử lý dữ liệu, và tạo kênh kết nối để trao đổi với các bệnh nhân và những người quan tâm đến lĩnh vực vật lý trị liệu.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-8 md:p-12 text-white text-center">
+            <h2 class="text-3xl font-bold mb-4">Hãy Liên Hệ Với Tôi</h2>
+            <p class="text-blue-100 mb-6 text-lg">
+                Bạn có thắc mắc hoặc muốn tìm hiểu thêm? Tôi sẵn sàng hỗ trợ.
+            </p>
+            <a href="/pages/contact.html" class="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white text-blue-600 rounded-lg hover:shadow-lg transition-all duration-200 font-semibold">
+                <i data-lucide="mail" class="w-5 h-5"></i>
+                Gửi Thông Điệp
+            </a>
         </section>
 
     </main>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-400 py-8 text-center mt-12">
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center mt-12 border-t border-slate-800">
         <div class="max-w-5xl mx-auto px-4">
-            <p class="text-sm">© 2024 Hệ thống Vật Lý Trị Liệu. Tất cả quyền được bảo lưu.</p>
-            <p class="text-slate-500 text-xs mt-2">Thiết kế trực quan dựa trên tài liệu phục hồi chức năng y khoa.</p>
+            <p class="text-sm">© 2024 minhhoangpt. Tất cả quyền được bảo lưu.</p>
         </div>
     </footer>
 
-    <script src="/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide Icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // Mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Highlight current page
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if ((currentPath === '/' && href === '/') || 
+                    (currentPath !== '/' && currentPath.includes(href))) {
+                    link.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload và Xử Lý Dữ Liệu - Vật Lý Trị Liệu</title>
+    <title>Upload và Xử Lý Dữ Liệu - minhhoangpt</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -54,9 +54,41 @@
 
     <!-- Main Layout -->
     <div class="min-h-screen flex flex-col">
-        
-        <!-- Header -->
-        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
+
+        <!-- Header Navigation -->
+        <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-2">
+                            <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">minhhoangpt</span>
+                    </div>
+                    <nav class="hidden md:flex gap-1">
+                        <a href="/" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Trang Chủ</a>
+                        <a href="/pages/upload.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Upload Dữ Liệu</a>
+                        <a href="/pages/about.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Giới Thiệu</a>
+                        <a href="/pages/contact.html" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Liên Hệ</a>
+                    </nav>
+                    <div class="md:hidden">
+                        <button id="mobile-menu-btn" class="p-2 rounded-md text-slate-700 hover:bg-slate-100">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-200">
+                <a href="/" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Trang Chủ</a>
+                <a href="/pages/upload.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Upload Dữ Liệu</a>
+                <a href="/pages/about.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Giới Thiệu</a>
+                <a href="/pages/contact.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Liên Hệ</a>
+            </div>
+        </header>
+
+        <!-- Page Header -->
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-12 px-4 sm:px-6 lg:px-8 shadow-lg">
             <div class="max-w-5xl mx-auto">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="bg-blue-600/50 p-2 rounded-full backdrop-blur-sm">
@@ -66,7 +98,7 @@
                 </div>
                 <p class="text-blue-100 text-lg">Tải lên file text (.txt) và phân tích dữ liệu một cách dễ dàng</p>
             </div>
-        </header>
+        </div>
 
         <!-- Main Content -->
         <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-grow">
@@ -216,15 +248,43 @@
         </main>
 
         <!-- Footer -->
-        <footer class="bg-slate-900 text-slate-400 py-6 text-center mt-auto">
+        <footer class="bg-slate-900 text-slate-400 py-6 text-center mt-auto border-t border-slate-800">
             <div class="max-w-5xl mx-auto px-4">
-                <p class="text-sm">© 2024 Hệ thống Vật Lý Trị Liệu. Tất cả quyền được bảo lưu.</p>
+                <p class="text-sm">© 2024 minhhoangpt. Tất cả quyền được bảo lưu.</p>
             </div>
         </footer>
     </div>
 
     <script src="/common.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide Icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // Mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Highlight current page
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if ((currentPath === '/' && href === '/') ||
+                    (currentPath !== '/' && currentPath.includes(href))) {
+                    link.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
+                }
+            });
+        });
+
         let currentFileContent = '';
         let currentFileName = '';
         let currentLines = [];
