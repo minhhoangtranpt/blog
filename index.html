@@ -2,20 +2,28 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Tính toán hàm Excel từ file TXT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phân tích dữ liệu TwinPlates</title>
   <link rel="stylesheet" href="css/style.css">
-  <!-- CDN Formula.js -->
-  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.2/dist/jstat.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/formulajs/formulajs@2.9.3/dist/formula.min.js"></script>
-</head>
-<body>
-  <h1>Upload file .txt chứa dữ liệu hoặc công thức Excel</h1>
   
-  <input type="file" id="fileInput" accept=".txt">
-  <button onclick="processFile()">Tính toán</button>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.2/dist/jstat.min.js"></script>
+  </head>
+<body>
+  <div class="container">
+    <h1>Phân tích chỉ số lực (T0 - T5)</h1>
+    
+    <div class="upload-section">
+      <p>Chọn file .txt từ thiết bị TwinPlates để bắt đầu:</p>
+      <input type="file" id="fileInput" accept=".txt">
+      <button id="calcBtn" onclick="processFile()">Tính toán kết quả</button>
+    </div>
 
-  <div id="content"></div>
-  <div id="result"></div>
+    <div id="subjectInfo"></div>
+
+    <div id="result"></div>
+    
+    <canvas id="forceChart"></canvas>
+  </div>
 
   <script src="js/script.js"></script>
 </body>
