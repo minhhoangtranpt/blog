@@ -1,10 +1,13 @@
+let fzChartInstance = null;
+
 function processFile() {
     const fileInput = document.getElementById('fileInput');
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
+    const chartWrapper = document.getElementById('chartWrapper');
     
     if (!fileInput.files.length) {
-        alert("Vui lòng chọn file .txt!");
+        alert("Vui lòng chọn file dữ liệu!");
         return;
     }
 
@@ -12,20 +15,19 @@ function processFile() {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split(/\r?\n/);
-        
+        const lines = e.target.result.split(/\r?\n/);
         let dataStartIndex = -1;
+
+        // Tìm dòng bắt đầu dữ liệu
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes("Time (s)")) {
-                // Kiểm tra nếu có hàng tiêu đề phụ (TOTAL, DIO, A, B)
                 dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
                 break;
             }
         }
 
         if (dataStartIndex === -1) {
-            resultDiv.innerHTML = "<p style='color:red;'>Lỗi: Không tìm thấy định dạng TwinPlates.</p>";
+            alert("Định dạng file không đúng!");
             return;
         }
 
@@ -33,81 +35,121 @@ function processFile() {
         let fzData = [];
 
         for (let i = dataStartIndex; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-            const cols = line.split('\t');
+            const cols = lines[i].trim().split('\t');
+            if (cols.length < 2) continue;
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]); // Cột Fz của TOTAL
+            const fz = parseFloat(cols[1]);
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
                 fzData.push(fz);
             }
         }
 
-        try {
-            // --- 1. TÍNH BASELINE & NGƯỠNG ---
-            const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
-            const meanFz5s = jStat.mean(fz5s);
-            const thresholdT0 = 0.025 * meanFz5s;
+        // --- TÍNH TOÁN ---
+        const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
+        const meanFz5s = jStat.mean(fz5s);
+        const thresholdT0 = 0.025 * meanFz5s;
 
-            // --- 2. TÌM T1 (MAX TRONG 10S ĐẦU) ---
-            let maxFz = -Infinity;
-            let T1_idx = 0;
-            for (let i = 0; i < timeData.length; i++) {
-                if (timeData[i] > 10.0) break;
-                if (fzData[i] > maxFz) {
-                    maxFz = fzData[i];
-                    T1_idx = i;
-                }
+        // Tìm T1 (Max trong 10s)
+        let maxFz = -Infinity;
+        let T1_idx = 0;
+        for (let i = 0; i < timeData.length; i++) {
+            if (timeData[i] > 10.0) break;
+            if (fzData[i] > maxFz) {
+                maxFz = fzData[i];
+                T1_idx = i;
             }
-            const T1 = timeData[T1_idx];
+        }
+        const T1 = timeData[T1_idx];
 
-            // --- 3. TÌM T0 (LINH HOẠT TRƯỚC T1) ---
-            // Tự động tính số mẫu dựa trên Ms người dùng nhập và Sample Rate của file
-            const sampleRate = 1 / (timeData[1] - timeData[0]); 
-            const windowSize = Math.ceil((windowMsInput.value / 1000) * sampleRate);
-            
-            let T0_val = "Không tìm thấy";
-            for (let i = 0; i <= T1_idx - windowSize; i++) {
-                let isStable = true;
-                for (let j = 0; j < windowSize; j++) {
-                    if (fzData[i + j] >= thresholdT0) {
-                        isStable = false;
-                        break;
-                    }
-                }
-                if (isStable) {
-                    T0_val = timeData[i].toFixed(4);
+        // Tìm T0 (Window check trước T1)
+        const sampleRate = 1 / (timeData[1] - timeData[0]);
+        const windowSize = Math.ceil((windowMsInput.value / 1000) * sampleRate);
+        let T0_val = null;
+
+        for (let i = 0; i <= T1_idx - windowSize; i++) {
+            let isStable = true;
+            for (let j = 0; j < windowSize; j++) {
+                if (fzData[i + j] >= thresholdT0) {
+                    isStable = false;
                     break;
                 }
             }
-
-            // --- 4. HIỂN THỊ KẾT QUẢ ---
-            resultDiv.innerHTML = `
-                <div class="card card-full animate-fade">
-                    <h3>Thông số nền (0 - 5.0s)</h3>
-                    <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N (Lực TB)</span></div>
-                    <div class="unit">Ngưỡng T0 xác định tại: ${thresholdT0.toFixed(2)} N</div>
-                </div>
-                
-                <div class="card animate-fade" style="border-left: 5px solid #ef4444;">
-                    <h3>Mốc T0 (Khởi phát)</h3>
-                    <div class="value">${T0_val}</div>
-                    <div class="unit">giây (Duy trì dưới ngưỡng ${windowMsInput.value}ms)</div>
-                </div>
-
-                <div class="card animate-fade" style="border-left: 5px solid #10b981;">
-                    <h3>Mốc T1 (Cực đại)</h3>
-                    <div class="value">${T1.toFixed(4)}</div>
-                    <div class="unit">giây (Fz max: ${maxFz.toFixed(2)} N)</div>
-                </div>
-            `;
-
-        } catch (err) {
-            console.error(err);
-            resultDiv.innerHTML = "Có lỗi xảy ra khi xử lý dữ liệu số.";
+            if (isStable) {
+                T0_val = timeData[i];
+                break;
+            }
         }
+
+        // --- HIỂN THỊ ---
+        chartWrapper.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div class="card card-full animate">
+                <h3>Lực Baseline (0-5s)</h3>
+                <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
+                <div class="info-footer">Ngưỡng T0: ${thresholdT0.toFixed(2)} N</div>
+            </div>
+            <div class="card danger-border animate">
+                <h3>Mốc T0 (Khởi phát)</h3>
+                <div class="value" style="color: var(--danger);">${T0_val !== null ? T0_val.toFixed(4) : "---"}</div>
+                <div class="unit">giây</div>
+                <div class="info-footer">Duy trì ổn định ${windowMsInput.value}ms</div>
+            </div>
+            <div class="card success-border animate">
+                <h3>Mốc T1 (Cực đại)</h3>
+                <div class="value" style="color: var(--success);">${T1.toFixed(4)}</div>
+                <div class="unit">giây</div>
+                <div class="info-footer">Fz max: ${maxFz.toFixed(2)} N</div>
+            </div>
+        `;
+
+        drawChart(timeData, fzData, T0_val, T1);
+    };
+    reader.readAsText(file);
+}
+
+function drawChart(labels, data, T0, T1) {
+    const ctx = document.getElementById('fzChart').getContext('2d');
+    if (fzChartInstance) fzChartInstance.destroy();
+
+    const annotations = {};
+    if (T0 !== null) {
+        annotations.lineT0 = {
+            type: 'line', xMin: T0, xMax: T0,
+            borderColor: '#ef4444', borderWidth: 2,
+            label: { display: true, content: 'T0', position: 'start', backgroundColor: '#ef4444' }
+        };
+    }
+    annotations.lineT1 = {
+        type: 'line', xMin: T1, xMax: T1,
+        borderColor: '#10b981', borderWidth: 2,
+        label: { display: true, content: 'T1', position: 'start', backgroundColor: '#10b981' }
     };
 
-    reader.readAsText(file);
+    fzChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Fz Total',
+                data: data,
+                borderColor: '#2563eb',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } },
+                y: { title: { display: true, text: 'Lực (N)' } }
+            },
+            plugins: {
+                legend: { display: false },
+                annotation: { annotations: annotations }
+            }
+        }
+    });
 }
