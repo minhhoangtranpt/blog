@@ -122,16 +122,16 @@ function analyzeSTS(timeData, fzData) {
             }
         }
 
-        // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ TRONG 0.3 GIÂY SAU T4
+        // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ TRONG 0.5 GIÂY SAU T4
         if (T4_idx !== -1) {
-            // ---> ĐIỀU CHỈNH 0.3 GIÂY Ở ĐÂY <---
-            const maxTimeWindow = timeData[T4_idx] + 0.3; 
+            // ---> ĐIỀU CHỈNH THÀNH 0.5 GIÂY <---
+            const maxTimeWindow = timeData[T4_idx] + 0.5; 
             let endWindowIdx = T4_idx;
             while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
                 endWindowIdx++; 
             }
 
-            // Cực đại cục bộ trong 0.3s sau T4
+            // Cực đại cục bộ trong 0.5s sau T4
             let lMaxIdx = T4_idx;
             lMaxFz = fzData[T4_idx];
             for (let i = T4_idx + 1; i < endWindowIdx; i++) {
