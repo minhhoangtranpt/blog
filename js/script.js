@@ -34,7 +34,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // Đọc TOÀN BỘ dữ liệu
+        // Đọc TOÀN BỘ dữ liệu để vẽ biểu đồ
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -67,6 +67,10 @@ function processFile() {
             let T3_val = null, T3_idx = -1, fzAtT3 = null;
             let T4_val = null, T4_idx = -1, fzAtT4 = null;
             let T5_val = null, T5_idx = -1, fzAtT5 = null;
+            
+            // Các biến trung gian để vẽ biểu đồ
+            let localMax_val = null;
+            let localMin_val = null;
 
             const sampleRate = 1 / (timeData[1] - timeData[0]);
             const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
@@ -155,38 +159,39 @@ function processFile() {
                 if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
             }
 
-            // --- T5 MỚI: Phân tích cửa sổ 1 giây sau T4 ---
+            // --- CHUỖI TÌM KIẾM T5 THEO ĐÚNG THỨ TỰ ---
+            // T4 -> Cực đại cục bộ (trong 1s) -> Cực tiểu cục bộ -> T5
             if (T4_idx !== -1 && fzAtT3 !== null) {
-                // Xác định điểm kết thúc của cửa sổ 1 giây
-                const maxT5Time = timeData[T4_idx] + 1.0; 
+                const maxTimeWindow = timeData[T4_idx] + 1.0; 
                 let endWindowIdx = T4_idx;
-                while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxT5Time) {
+                while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) {
                     endWindowIdx++;
                 }
 
-                // 1. Tìm cực đại cục bộ trong cửa sổ [T4, T4 + 1s]
-                let localMaxIdx = T4_idx;
-                let localMaxFz = -Infinity;
-                for (let i = T4_idx; i < endWindowIdx; i++) {
-                    if (fzData[i] > localMaxFz) {
-                        localMaxFz = fzData[i];
-                        localMaxIdx = i;
+                // 1. Tìm CỰC ĐẠI cục bộ (trong 1 giây sau T4)
+                let lMaxIdx = T4_idx;
+                let lMaxFz = fzData[T4_idx];
+                for (let i = T4_idx + 1; i < endWindowIdx; i++) {
+                    if (fzData[i] > lMaxFz) {
+                        lMaxFz = fzData[i];
+                        lMaxIdx = i;
                     }
                 }
+                localMax_val = timeData[lMaxIdx];
 
-                // 2. Tìm cực tiểu cục bộ từ sau điểm cực đại đó đến hết cửa sổ 1s
-                let localMinIdx = localMaxIdx;
-                let localMinFz = Infinity;
-                for (let i = localMaxIdx; i < endWindowIdx; i++) {
-                    if (fzData[i] < localMinFz) {
-                        localMinFz = fzData[i];
-                        localMinIdx = i;
+                // 2. Tìm CỰC TIỂU cục bộ (Từ sau cực đại cục bộ đến hết 1 giây)
+                let lMinIdx = lMaxIdx;
+                let lMinFz = fzData[lMaxIdx];
+                for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
+                    if (fzData[i] < lMinFz) {
+                        lMinFz = fzData[i];
+                        lMinIdx = i;
                     }
                 }
+                localMin_val = timeData[lMinIdx];
 
-                // 3. Tìm T5: Điểm đầu tiên chạm mức T3 tính từ sau cực tiểu cục bộ
-                // Quét từ localMinIdx đến hết giới hạn 10s (limitIdx)
-                for (let i = localMinIdx; i < limitIdx; i++) {
+                // 3. Tìm T5 (Từ sau cực tiểu cục bộ kéo dài đến giới hạn 10s)
+                for (let i = lMinIdx + 1; i < limitIdx; i++) {
                     if (fzData[i] >= fzAtT3) {
                         T5_val = timeData[i];
                         T5_idx = i;
@@ -230,13 +235,14 @@ function processFile() {
                     <div class="info-footer">Fz Min: ${fzAtT4 !== null ? fzAtT4.toFixed(2) : "---"} N</div>
                 </div>
                 <div class="card animate" style="border-top: 4px solid #64748b;">
-                    <h3>T5 (Phục hồi sau nhún)</h3>
+                    <h3>T5 (Phục hồi cuối)</h3>
                     <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
                     <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu"}</div>
                 </div>
             `;
 
-            drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val);
+            // Gọi hàm vẽ, truyền thêm các điểm phụ để chú thích
+            drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
         } catch (err) {
             console.error(err);
@@ -247,12 +253,14 @@ function processFile() {
     reader.readAsText(file);
 }
 
-function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
+// Cập nhật hàm drawChart để nhận thêm 2 biến phụ
+function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     const ctx = document.getElementById('fzChart').getContext('2d');
     if (fzChartInstance) fzChartInstance.destroy();
 
     const annotations = {};
     
+    // Hàm vẽ đường kẻ chính
     function addLine(id, value, color, text) {
         if (value !== null) {
             annotations[id] = {
@@ -266,12 +274,30 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
         }
     }
 
+    // Hàm vẽ đường kẻ mờ cho các mốc trung gian
+    function addThinLine(id, value, text) {
+        if (value !== null && value !== T4 && value !== T5) {
+            annotations[id] = {
+                type: 'line', xMin: value, xMax: value,
+                borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2],
+                label: {
+                    display: true, content: text, position: 'end',
+                    backgroundColor: 'rgba(148, 163, 184, 0.8)', color: '#fff', font: { size: 9 }
+                }
+            };
+        }
+    }
+
     addLine('l0', T0, '#ef4444', 'T0');
     addLine('l1', T1, '#10b981', 'T1');
     addLine('l2', T2, '#f59e0b', 'T2');
     addLine('l3', T3, '#3b82f6', 'T3');
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
+    
+    // Vẽ thêm 2 mốc trung gian lên biểu đồ để bạn dễ theo dõi logic
+    addThinLine('lMax', lMax, 'C.Đại phụ');
+    addThinLine('lMin', lMin, 'C.Tiểu phụ');
 
     fzChartInstance = new Chart(ctx, {
         type: 'line',
