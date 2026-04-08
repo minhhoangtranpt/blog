@@ -40,17 +40,24 @@ function processFile() {
 
         let timeData = [];
         let fzData = [];
+        let fzAData = []; // Lưu lực bàn A
+        let fzBData = []; // Lưu lực bàn B
 
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             const cols = line.split('\t');
+            
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]); 
+            const fz = parseFloat(cols[1]); // Fz Total
+            const fzA = parseFloat(cols[14]); // Fz Forceplate A
+            const fzB = parseFloat(cols[23]); // Fz Forceplate B
 
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
                 fzData.push(fz);
+                fzAData.push(isNaN(fzA) ? 0 : fzA);
+                fzBData.push(isNaN(fzB) ? 0 : fzB);
             }
         }
 
@@ -59,7 +66,7 @@ function processFile() {
         if (analysisMode === 'sts') {
             analyzeSTS(timeData, fzData);
         } else if (analysisMode === 'stw') {
-            analyzeSTW(timeData, fzData, subjectWeight);
+            analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight);
         }
     };
 
@@ -230,7 +237,7 @@ function analyzeSTS(timeData, fzData) {
 // ==========================================
 // BÀI TEST 2: SIT TO WALK (STW)
 // ==========================================
-function analyzeSTW(timeData, fzData, subjectWeight) {
+function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -291,10 +298,10 @@ function analyzeSTW(timeData, fzData, subjectWeight) {
             refStableLabel = `${refStableFz.toFixed(2)} N (Dự phòng 5s)`;
         }
 
-        // Quét ĐI TỚI từ ngay sau T2 để tìm điểm đầu tiên Fz giảm xuống mức Subject Weight
+        // Quét đi tới từ sau T2
         if (T2_idx !== -1 && refStableFz !== null) {
             for (let i = T2_idx + 1; i < limitIdx; i++) {
-                if (fzData[i] <= refStableFz) { // Tụt xuống bằng hoặc thấp hơn đường Subject Weight
+                if (fzData[i] <= refStableFz) { 
                     T3_idx = i;
                     T3_val = timeData[i];
                     fzAtT3 = fzData[i];
@@ -315,24 +322,28 @@ function analyzeSTW(timeData, fzData, subjectWeight) {
             }
         }
 
-        // 6. T4: Ổn định giữa T3 và T5 (dao động < 5% so với Fz T3 duy trì > 50ms)
+        // 6. T4: Fz của 1 bên forceplate bất kỳ (A hoặc B) < 5% Subject weight duy trì trong 50ms
         const window50 = Math.ceil((50 / 1000) * sampleRate);
-        if (T3_idx !== -1 && T5_idx !== -1 && (T5_idx - T3_idx >= window50)) {
-            const allowedDiff = 0.05 * fzAtT3; // 5% của Fz T3
-            
-            for (let i = T3_idx; i <= T5_idx - window50; i++) {
-                let isStable = true;
+        if (T3_idx !== -1 && refStableFz !== null) {
+            const thresholdT4 = 0.05 * refStableFz; // Mức 5% của Subject Weight
+            const searchEnd = T5_idx !== -1 ? T5_idx : timeData.length; // Tìm đến T5 hoặc kết thúc file
+
+            for (let i = T3_idx; i <= searchEnd - window50; i++) {
+                let isStableA = true;
+                let isStableB = true;
+                
                 for (let j = 0; j < window50; j++) {
-                    if (Math.abs(fzData[i + j] - fzAtT3) > allowedDiff) {
-                        isStable = false;
-                        break;
-                    }
+                    if (fzAData[i + j] >= thresholdT4) isStableA = false;
+                    if (fzBData[i + j] >= thresholdT4) isStableB = false;
+                    
+                    if (!isStableA && !isStableB) break;
                 }
                 
-                if (isStable) {
+                // Nếu chân bên A hoặc chân bên B thỏa mãn việc nhấc lên khỏi bàn lực (lực rớt xuống < 5% SW liên tục 50ms)
+                if (isStableA || isStableB) {
                     T4_idx = i;
                     T4_val = timeData[i];
-                    fzAtT4 = fzData[i];
+                    fzAtT4 = fzData[i]; // Lấy giá trị tổng Fz tại thời điểm nhấc 1 chân
                     break;
                 }
             }
@@ -366,9 +377,9 @@ function analyzeSTW(timeData, fzData, subjectWeight) {
                 <div class="info-footer">Ref: ${refStableLabel}</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
-                <h3>T4 (Bắt đầu ổn định)</h3>
+                <h3>T4 (Nhấc 1 chân)</h3>
                 <div class="value" style="color: #8b5cf6;">${T4_val !== null ? T4_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${fzAtT4 !== null ? `Fz: ${fzAtT4.toFixed(2)} N` : "Dao động < 5%"}</div>
+                <div class="info-footer">${T4_val !== null ? `Fz Total: ${fzAtT4.toFixed(2)} N` : "Không thấy FzA/B < 5%"}</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #64748b;">
                 <h3>T5 (Rời bàn lực)</h3>
