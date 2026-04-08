@@ -32,7 +32,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // Đọc toàn bộ dữ liệu (để vẽ biểu đồ hiển thị full file)
+        // Đọc toàn bộ dữ liệu
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -68,8 +68,8 @@ function analyzeSTS(timeData, fzData) {
     const chartWrapper = document.getElementById('chartWrapper');
 
     try {
-        // Mốc chặn tìm kiếm 10 giây
-        let limitIdx = timeData.findIndex(t => t > 10.0);
+        // Nới mốc chặn tìm kiếm lên 15 giây để lấy được dải 14s
+        let limitIdx = timeData.findIndex(t => t > 15.0);
         if (limitIdx === -1) limitIdx = timeData.length; 
 
         const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
@@ -85,7 +85,7 @@ function analyzeSTS(timeData, fzData) {
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
         
         let localMax_val = null, localMin_val = null;
-        let lMaxFz = null; // Biến lưu Fz của cực đại phụ
+        let lMaxFz = null; 
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
@@ -122,16 +122,14 @@ function analyzeSTS(timeData, fzData) {
             }
         }
 
-        // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ TRONG 0.5 GIÂY SAU T4
+        // 5. Tìm Cực đại phụ và Cực tiểu phụ (trong 0.5s sau T4)
         if (T4_idx !== -1) {
-            // ---> ĐIỀU CHỈNH THÀNH 0.5 GIÂY <---
             const maxTimeWindow = timeData[T4_idx] + 0.5; 
             let endWindowIdx = T4_idx;
             while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
                 endWindowIdx++; 
             }
 
-            // Cực đại cục bộ trong 0.5s sau T4
             let lMaxIdx = T4_idx;
             lMaxFz = fzData[T4_idx];
             for (let i = T4_idx + 1; i < endWindowIdx; i++) {
@@ -139,7 +137,6 @@ function analyzeSTS(timeData, fzData) {
             }
             localMax_val = timeData[lMaxIdx];
 
-            // Cực tiểu cục bộ từ sau cực đại cục bộ
             let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
             for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
                 if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
@@ -147,47 +144,46 @@ function analyzeSTS(timeData, fzData) {
             localMin_val = timeData[lMinIdx];
         }
 
-        // 6. Tìm T3 với điều kiện: Fz của vùng ổn định phải < Fz cực đại phụ (lMaxFz)
+        // 6. Tìm T3 sử dụng Vùng Tham Chiếu 8s - 14s
         const stableMs = 500; 
         const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
-        function findStableRegion(startIdx, endIdx, maxAllowedFz) {
-            if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) return null;
+        let idx8s = timeData.findIndex(t => t >= 8.0);
+        let idx14s = timeData.findIndex(t => t >= 14.0);
+        if (idx14s === -1) idx14s = timeData.length - 1;
+
+        let refStableFz = null;
+
+        if (idx8s !== -1 && idx8s < idx14s && (idx14s - idx8s >= stableW)) {
+            let minDiff = Infinity;
             
-            let minDiff = Infinity, bestIdx = -1, bestMean = 0;
-            
-            for (let i = startIdx; i <= endIdx - stableW; i++) {
+            for (let i = idx8s; i <= idx14s - stableW; i++) {
                 let maxW = -Infinity, minW = Infinity, sumW = 0;
                 for (let j = 0; j < stableW; j++) {
                     let v = fzData[i + j];
-                    if (v > maxW) maxW = v; if (v < minW) minW = v; sumW += v;
+                    if (v > maxW) maxW = v; 
+                    if (v < minW) minW = v; 
+                    sumW += v;
                 }
                 
-                let currentMean = sumW / stableW;
-
-                // Điều kiện bắt buộc: Vùng này phải có lực trung bình nhỏ hơn Cực đại phụ
-                if (maxAllowedFz !== null && currentMean >= maxAllowedFz) {
-                    continue; // Bỏ qua vùng này, quét vùng khác
-                }
-
-                if ((maxW - minW) < minDiff) {
-                    minDiff = maxW - minW; 
-                    bestIdx = i + Math.floor(stableW / 2); 
-                    bestMean = currentMean;
+                let diff = maxW - minW;
+                if (diff < minDiff) {
+                    minDiff = diff; 
+                    refStableFz = sumW / stableW; 
                 }
             }
-
-            // Nếu tìm thấy vùng thỏa mãn
-            if (bestIdx !== -1) {
-                return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
-            }
-            return null; // Không có vùng nào thỏa điều kiện
         }
 
-        if (T2_idx !== -1 && T4_idx !== -1) {
-            // Gọi hàm tìm T3 và truyền lMaxFz vào làm mốc chặn trên
-            let t3Data = findStableRegion(T2_idx, T4_idx, lMaxFz);
-            if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
+        // Dò ngược từ T4 về T2 để bắt điểm cắt với refStableFz
+        if (T2_idx !== -1 && T4_idx !== -1 && refStableFz !== null) {
+            for (let i = T4_idx; i >= T2_idx; i--) {
+                if (fzData[i] >= refStableFz) {
+                    T3_idx = i;
+                    T3_val = timeData[i];
+                    fzAtT3 = fzData[i];
+                    break;
+                }
+            }
         }
 
         // 7. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
@@ -202,6 +198,7 @@ function analyzeSTS(timeData, fzData) {
             }
         }
 
+        // HIỂN THỊ KẾT QUẢ RA HTML
         chartWrapper.style.display = 'block'; 
         resultDiv.innerHTML = `
             <div class="card card-full animate">
@@ -227,7 +224,7 @@ function analyzeSTS(timeData, fzData) {
             <div class="card animate" style="border-top: 4px solid #3b82f6;">
                 <h3>T3 (Ổn định 1)</h3>
                 <div class="value" style="color: #3b82f6;">${T3_val !== null ? T3_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz TB: ${fzAtT3 !== null ? fzAtT3.toFixed(2) : "---"} N</div>
+                <div class="info-footer">Fz Ref (8-14s): ${refStableFz !== null ? refStableFz.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
                 <h3>T4 (Cực tiểu)</h3>
@@ -241,7 +238,6 @@ function analyzeSTS(timeData, fzData) {
             </div>
         `;
         
-        // Vẽ biểu đồ
         drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
@@ -319,7 +315,6 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
     
-    // Vẽ cực đại phụ và cực tiểu phụ
     addThinLine('lMax', lMax, 'C.Đại phụ');
     addThinLine('lMin', lMin, 'C.Tiểu phụ');
 
