@@ -34,7 +34,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // Đọc TOÀN BỘ dữ liệu để vẽ biểu đồ đầy đủ
+        // Đọc TOÀN BỘ dữ liệu
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -52,9 +52,8 @@ function processFile() {
 
         try {
             // --- TẠO MỐC CHẶN 10 GIÂY ---
-            // Tìm vị trí (index) của mốc 10.0 giây trong mảng dữ liệu
             let limitIdx = timeData.findIndex(t => t > 10.0);
-            if (limitIdx === -1) limitIdx = timeData.length; // Nếu file ngắn hơn 10s thì lấy hết
+            if (limitIdx === -1) limitIdx = timeData.length; 
 
             // --- 1. BASELINE VÀ ĐỘ LỆCH CHUẨN (0 - 5s) ---
             const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
@@ -73,7 +72,7 @@ function processFile() {
             const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
             const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-            // --- T0: Giảm quá 4 SD (Chỉ tìm trước limitIdx) ---
+            // --- T0: Giảm quá 4 SD ---
             for (let i = 0; i < limitIdx - windowSize; i++) {
                 let isStable = true;
                 for (let j = 0; j < windowSize; j++) {
@@ -87,7 +86,7 @@ function processFile() {
                 }
             }
 
-            // --- T1: Phục hồi bằng Fz của T0 (Chỉ tìm trước limitIdx) ---
+            // --- T1: Phục hồi bằng Fz của T0 ---
             if (T0_idx !== -1) {
                 for (let i = T0_idx + 1; i < limitIdx; i++) {
                     if (fzData[i] >= fzAtT0) {
@@ -97,7 +96,7 @@ function processFile() {
                 }
             }
 
-            // --- T2: Cực đại (Chỉ tìm từ T1 đến giới hạn 10s) ---
+            // --- T2: Cực đại (Từ T1 trở đi) ---
             let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
             let maxFz = -Infinity;
             for (let i = searchStartT2; i < limitIdx; i++) {
@@ -107,7 +106,7 @@ function processFile() {
                 }
             }
 
-            // --- T4: Cực tiểu (Chỉ tìm từ T2 đến giới hạn 10s) ---
+            // --- T4: Cực tiểu (Từ T2 trở đi) ---
             if (T2_idx !== -1) {
                 let minFz = Infinity;
                 for (let i = T2_idx; i < limitIdx; i++) {
@@ -118,7 +117,7 @@ function processFile() {
                 }
             }
 
-            // --- T3 & T5: Vùng chênh lệch tối thiểu ---
+            // --- T3: Vùng chênh lệch tối thiểu (Giữa T2 và T4) ---
             const stableMs = 500; 
             const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
@@ -151,16 +150,50 @@ function processFile() {
                 return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
             }
 
-            // T3: Tìm giữa T2 và T4
             if (T2_idx !== -1 && T4_idx !== -1) {
                 let t3Data = findStableRegion(T2_idx, T4_idx);
-                if(t3Data) { T3_val = t3Data.val; fzAtT3 = t3Data.fz; }
+                if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
             }
 
-            // T5: Tìm từ T4 đến giới hạn 10s (limitIdx)
-            if (T4_idx !== -1) {
-                let t5Data = findStableRegion(T4_idx, limitIdx - 1);
-                if(t5Data) { T5_val = t5Data.val; fzAtT5 = t5Data.fz; }
+            // --- T5 MỚI: Phân tích cửa sổ 1 giây sau T4 ---
+            if (T4_idx !== -1 && fzAtT3 !== null) {
+                // Xác định điểm kết thúc của cửa sổ 1 giây
+                const maxT5Time = timeData[T4_idx] + 1.0; 
+                let endWindowIdx = T4_idx;
+                while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxT5Time) {
+                    endWindowIdx++;
+                }
+
+                // 1. Tìm cực đại cục bộ trong cửa sổ [T4, T4 + 1s]
+                let localMaxIdx = T4_idx;
+                let localMaxFz = -Infinity;
+                for (let i = T4_idx; i < endWindowIdx; i++) {
+                    if (fzData[i] > localMaxFz) {
+                        localMaxFz = fzData[i];
+                        localMaxIdx = i;
+                    }
+                }
+
+                // 2. Tìm cực tiểu cục bộ từ sau điểm cực đại đó đến hết cửa sổ 1s
+                let localMinIdx = localMaxIdx;
+                let localMinFz = Infinity;
+                for (let i = localMaxIdx; i < endWindowIdx; i++) {
+                    if (fzData[i] < localMinFz) {
+                        localMinFz = fzData[i];
+                        localMinIdx = i;
+                    }
+                }
+
+                // 3. Tìm T5: Điểm đầu tiên chạm mức T3 tính từ sau cực tiểu cục bộ
+                // Quét từ localMinIdx đến hết giới hạn 10s (limitIdx)
+                for (let i = localMinIdx; i < limitIdx; i++) {
+                    if (fzData[i] >= fzAtT3) {
+                        T5_val = timeData[i];
+                        T5_idx = i;
+                        fzAtT5 = fzData[i];
+                        break; 
+                    }
+                }
             }
 
             // --- HIỂN THỊ HTML ---
@@ -197,9 +230,9 @@ function processFile() {
                     <div class="info-footer">Fz Min: ${fzAtT4 !== null ? fzAtT4.toFixed(2) : "---"} N</div>
                 </div>
                 <div class="card animate" style="border-top: 4px solid #64748b;">
-                    <h3>T5 (Ổn định 2)</h3>
+                    <h3>T5 (Phục hồi sau nhún)</h3>
                     <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                    <div class="info-footer">Fz TB: ${fzAtT5 !== null ? fzAtT5.toFixed(2) : "---"} N</div>
+                    <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu"}</div>
                 </div>
             `;
 
