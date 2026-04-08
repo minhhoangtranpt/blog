@@ -34,6 +34,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
+        // --- CHỈ ĐỌC DỮ LIỆU ĐẾN 10 GIÂY ---
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -42,6 +43,7 @@ function processFile() {
             const fz = parseFloat(cols[1]); 
 
             if (!isNaN(t) && !isNaN(fz)) {
+                if (t > 10.0) break; // Ngắt ngay lập tức khi thời gian vượt qua 10.0s
                 timeData.push(t);
                 fzData.push(fz);
             }
@@ -50,13 +52,12 @@ function processFile() {
         if (timeData.length < 2) return;
 
         try {
-            // --- 1. BASELINE VÀ ĐỘ LỆCH CHUẨN ---
+            // --- 1. BASELINE VÀ ĐỘ LỆCH CHUẨN (0 - 5s) ---
             const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
             const meanFz5s = jStat.mean(fz5s);
             const stdFz5s = jStat.stdev(fz5s);
             const thresholdT0 = meanFz5s - (4 * stdFz5s);
 
-            // Khởi tạo các biến lưu trữ Mốc Thời Gian
             let T0_val = null, T0_idx = -1, fzAtT0 = null;
             let T1_val = null, T1_idx = -1, fzAtT1 = null;
             let T2_val = null, T2_idx = -1, fzAtT2 = null;
@@ -114,11 +115,9 @@ function processFile() {
             }
 
             // --- T3 & T5: Vùng chênh lệch tối thiểu ---
-            // Cửa sổ 5000ms (5 giây) để quét vùng ổn định. (Bạn có thể sửa số)
             const stableMs = 500; 
             const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
-            // Hàm quét vùng có biên độ (Max - Min) nhỏ nhất
             function findStableRegion(startIdx, endIdx) {
                 if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) return null;
                 if ((endIdx - startIdx) < stableW) {
@@ -141,8 +140,8 @@ function processFile() {
                     }
                     if ((maxW - minW) < minDiff) {
                         minDiff = maxW - minW;
-                        bestIdx = i + Math.floor(stableW / 2); // Mốc thời gian là Tâm của cửa sổ ổn định
-                        bestMean = sumW / stableW; // Fz là trung bình của cửa sổ đó
+                        bestIdx = i + Math.floor(stableW / 2);
+                        bestMean = sumW / stableW;
                     }
                 }
                 return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
@@ -154,7 +153,7 @@ function processFile() {
                 if(t3Data) { T3_val = t3Data.val; fzAtT3 = t3Data.fz; }
             }
 
-            // T5: Tìm từ T4 đến cuối file
+            // T5: Tìm từ T4 đến cuối đoạn dữ liệu (tối đa là mốc 10.0s)
             if (T4_idx !== -1) {
                 let t5Data = findStableRegion(T4_idx, timeData.length - 1);
                 if(t5Data) { T5_val = t5Data.val; fzAtT5 = t5Data.fz; }
@@ -250,7 +249,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
-                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } },
+                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' }, max: 10.0 }, // Cố định hiển thị trục X tối đa 10s
                 y: { title: { display: true, text: 'Lực Fz (N)' } }
             },
             plugins: {
