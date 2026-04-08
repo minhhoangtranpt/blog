@@ -34,7 +34,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // Đọc TOÀN BỘ dữ liệu để vẽ biểu đồ
+        // Đọc TOÀN BỘ dữ liệu để biểu đồ có thể hiển thị full
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -52,6 +52,7 @@ function processFile() {
 
         try {
             // --- TẠO MỐC CHẶN 10 GIÂY ---
+            // Mọi thuật toán tìm kiếm T0->T5 đều bị chặn ở mốc limitIdx này
             let limitIdx = timeData.findIndex(t => t > 10.0);
             if (limitIdx === -1) limitIdx = timeData.length; 
 
@@ -68,7 +69,7 @@ function processFile() {
             let T4_val = null, T4_idx = -1, fzAtT4 = null;
             let T5_val = null, T5_idx = -1, fzAtT5 = null;
             
-            // Các biến trung gian để vẽ biểu đồ
+            // Các biến trung gian để vẽ chú thích phụ lên biểu đồ
             let localMax_val = null;
             let localMin_val = null;
 
@@ -76,7 +77,7 @@ function processFile() {
             const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
             const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-            // --- T0: Giảm quá 4 SD ---
+            // --- T0: Khởi phát (Lực giảm quá 4 SD) ---
             for (let i = 0; i < limitIdx - windowSize; i++) {
                 let isStable = true;
                 for (let j = 0; j < windowSize; j++) {
@@ -90,7 +91,7 @@ function processFile() {
                 }
             }
 
-            // --- T1: Phục hồi bằng Fz của T0 ---
+            // --- T1: Phục hồi bằng lực tại T0 ---
             if (T0_idx !== -1) {
                 for (let i = T0_idx + 1; i < limitIdx; i++) {
                     if (fzData[i] >= fzAtT0) {
@@ -100,7 +101,7 @@ function processFile() {
                 }
             }
 
-            // --- T2: Cực đại (Từ T1 trở đi) ---
+            // --- T2: Cực đại (Từ T1 đến 10s) ---
             let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
             let maxFz = -Infinity;
             for (let i = searchStartT2; i < limitIdx; i++) {
@@ -110,7 +111,7 @@ function processFile() {
                 }
             }
 
-            // --- T4: Cực tiểu (Từ T2 trở đi) ---
+            // --- T4: Cực tiểu (Từ T2 đến 10s) ---
             if (T2_idx !== -1) {
                 let minFz = Infinity;
                 for (let i = T2_idx; i < limitIdx; i++) {
@@ -121,7 +122,7 @@ function processFile() {
                 }
             }
 
-            // --- T3: Vùng chênh lệch tối thiểu (Giữa T2 và T4) ---
+            // --- T3: Vùng ổn định (Giữa T2 và T4) ---
             const stableMs = 500; 
             const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
@@ -159,16 +160,16 @@ function processFile() {
                 if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
             }
 
-            // --- CHUỖI TÌM KIẾM T5 THEO ĐÚNG THỨ TỰ ---
-            // T4 -> Cực đại cục bộ (trong 1s) -> Cực tiểu cục bộ -> T5
+            // --- T5: Chuỗi pha hạ cánh sau T4 ---
             if (T4_idx !== -1 && fzAtT3 !== null) {
+                // Giới hạn cửa sổ quét là 1 giây sau T4
                 const maxTimeWindow = timeData[T4_idx] + 1.0; 
                 let endWindowIdx = T4_idx;
                 while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) {
                     endWindowIdx++;
                 }
 
-                // 1. Tìm CỰC ĐẠI cục bộ (trong 1 giây sau T4)
+                // 1. Tìm đỉnh va chạm (Cực đại cục bộ)
                 let lMaxIdx = T4_idx;
                 let lMaxFz = fzData[T4_idx];
                 for (let i = T4_idx + 1; i < endWindowIdx; i++) {
@@ -179,7 +180,7 @@ function processFile() {
                 }
                 localMax_val = timeData[lMaxIdx];
 
-                // 2. Tìm CỰC TIỂU cục bộ (Từ sau cực đại cục bộ đến hết 1 giây)
+                // 2. Tìm điểm hấp thụ (Cực tiểu cục bộ) sau đỉnh va chạm
                 let lMinIdx = lMaxIdx;
                 let lMinFz = fzData[lMaxIdx];
                 for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
@@ -190,7 +191,7 @@ function processFile() {
                 }
                 localMin_val = timeData[lMinIdx];
 
-                // 3. Tìm T5 (Từ sau cực tiểu cục bộ kéo dài đến giới hạn 10s)
+                // 3. T5: Phục hồi bằng T3 sau khi hấp thụ xong
                 for (let i = lMinIdx + 1; i < limitIdx; i++) {
                     if (fzData[i] >= fzAtT3) {
                         T5_val = timeData[i];
@@ -237,11 +238,10 @@ function processFile() {
                 <div class="card animate" style="border-top: 4px solid #64748b;">
                     <h3>T5 (Phục hồi cuối)</h3>
                     <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                    <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu"}</div>
+                    <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu phụ"}</div>
                 </div>
             `;
 
-            // Gọi hàm vẽ, truyền thêm các điểm phụ để chú thích
             drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
         } catch (err) {
@@ -253,14 +253,20 @@ function processFile() {
     reader.readAsText(file);
 }
 
-// Cập nhật hàm drawChart để nhận thêm 2 biến phụ
+// Reset biểu đồ
+function resetChartZoom() {
+    if (fzChartInstance) {
+        fzChartInstance.resetZoom();
+    }
+}
+
+// Vẽ biểu đồ và cấu hình Plugin Zoom
 function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     const ctx = document.getElementById('fzChart').getContext('2d');
     if (fzChartInstance) fzChartInstance.destroy();
 
     const annotations = {};
     
-    // Hàm vẽ đường kẻ chính
     function addLine(id, value, color, text) {
         if (value !== null) {
             annotations[id] = {
@@ -274,7 +280,6 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         }
     }
 
-    // Hàm vẽ đường kẻ mờ cho các mốc trung gian
     function addThinLine(id, value, text) {
         if (value !== null && value !== T4 && value !== T5) {
             annotations[id] = {
@@ -295,7 +300,6 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
     
-    // Vẽ thêm 2 mốc trung gian lên biểu đồ để bạn dễ theo dõi logic
     addThinLine('lMax', lMax, 'C.Đại phụ');
     addThinLine('lMin', lMin, 'C.Tiểu phụ');
 
@@ -309,7 +313,8 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true, 
+            maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
                 x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } },
@@ -317,7 +322,22 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
             },
             plugins: {
                 legend: { display: false },
-                annotation: { annotations: annotations }
+                annotation: { annotations: annotations },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x' // Chỉ cho kéo ngang
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true // Bật cuộn chuột để zoom
+                        },
+                        pinch: {
+                            enabled: true // Bật vuốt tay trên touch screen
+                        },
+                        mode: 'x' // Chỉ thu phóng theo trục thời gian X
+                    }
+                }
             }
         }
     });
