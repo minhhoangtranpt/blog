@@ -1,76 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phân tích lực sàn - STS & STW</title>
+    <!-- Thêm thư viện cần thiết (Chart.js + jStat) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.5/dist/jstat.min.js"></script>
+</head>
+<body>
+
+<!-- Phần HTML của bạn giữ nguyên (fileInput, analysisMode, windowMs, result, chartWrapper, fzChart...) -->
+
+<script>
+// ==========================================
+// CODE HOÀN CHỈNH SAU KHI CHỈNH SỬA
+// ==========================================
+
 let fzChartInstance = null;
 
 function processFile() {
     const fileInput = document.getElementById('fileInput');
     const analysisMode = document.getElementById('analysisMode').value;
-    
+   
     if (!fileInput.files.length) {
         alert("Vui lòng chọn file .txt!");
         return;
     }
-
     const file = fileInput.files[0];
     const reader = new FileReader();
-
     reader.onload = function(e) {
         const text = e.target.result;
         const lines = text.split(/\r?\n/);
         let dataStartIndex = -1;
-        
+       
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes("Time (s)")) {
                 dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
                 break;
             }
         }
-
         if (dataStartIndex === -1) {
             alert("Lỗi: Không tìm thấy định dạng dữ liệu chuẩn.");
             return;
         }
-
         let timeData = [];
         let fzData = [];
-
-        // Đọc toàn bộ dữ liệu (để vẽ biểu đồ hiển thị full file)
+        // Đọc toàn bộ dữ liệu
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             const cols = line.split('\t');
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]); 
-
+            const fz = parseFloat(cols[1]);
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
                 fzData.push(fz);
             }
         }
-
-        if (timeData.length < 2) return;
-
-        // ĐIỀU HƯỚNG TỚI CÔNG THỨC PHÂN TÍCH
+        if (timeData.length < 2) {
+            alert("Dữ liệu không đủ để phân tích.");
+            return;
+        }
+        // Điều hướng phân tích
         if (analysisMode === 'sts') {
             analyzeSTS(timeData, fzData);
         } else if (analysisMode === 'stw') {
             analyzeSTW(timeData, fzData);
         }
     };
-
     reader.readAsText(file);
 }
 
 // ==========================================
-// BÀI TEST 1: SIT TO STAND (STS)
+// BÀI TEST 1: SIT TO STAND (STS) - ĐÃ CHỈNH SỬA
 // ==========================================
 function analyzeSTS(timeData, fzData) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
-
     try {
         // Mốc chặn tìm kiếm 10 giây
         let limitIdx = timeData.findIndex(t => t > 10.0);
-        if (limitIdx === -1) limitIdx = timeData.length; 
+        if (limitIdx === -1) limitIdx = timeData.length;
 
         const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
         const meanFz5s = jStat.mean(fz5s);
@@ -83,9 +95,9 @@ function analyzeSTS(timeData, fzData) {
         let T3_val = null, T3_idx = -1, fzAtT3 = null;
         let T4_val = null, T4_idx = -1, fzAtT4 = null;
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
-        
+       
         let localMax_val = null, localMin_val = null;
-        let lMaxFz = null; // Biến lưu Fz của cực đại phụ
+        let lMaxFz = null;
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
@@ -97,13 +109,23 @@ function analyzeSTS(timeData, fzData) {
             for (let j = 0; j < windowSize; j++) {
                 if (fzData[i + j] >= thresholdT0) { isStable = false; break; }
             }
-            if (isStable) { T0_val = timeData[i]; T0_idx = i; fzAtT0 = fzData[i]; break; }
+            if (isStable) { 
+                T0_val = timeData[i]; 
+                T0_idx = i; 
+                fzAtT0 = fzData[i]; 
+                break; 
+            }
         }
 
         // 2. Tìm T1
         if (T0_idx !== -1) {
             for (let i = T0_idx + 1; i < limitIdx; i++) {
-                if (fzData[i] >= fzAtT0) { T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i]; break; }
+                if (fzData[i] >= fzAtT0) { 
+                    T1_val = timeData[i]; 
+                    T1_idx = i; 
+                    fzAtT1 = fzData[i]; 
+                    break; 
+                }
             }
         }
 
@@ -111,97 +133,130 @@ function analyzeSTS(timeData, fzData) {
         let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
         let maxFz = -Infinity;
         for (let i = searchStartT2; i < limitIdx; i++) {
-            if (fzData[i] > maxFz) { maxFz = fzData[i]; T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i]; }
+            if (fzData[i] > maxFz) { 
+                maxFz = fzData[i]; 
+                T2_val = timeData[i]; 
+                T2_idx = i; 
+                fzAtT2 = fzData[i]; 
+            }
         }
 
         // 4. Tìm T4 (Cực tiểu chính)
         if (T2_idx !== -1) {
             let minFz = Infinity;
             for (let i = T2_idx; i < limitIdx; i++) {
-                if (fzData[i] < minFz) { minFz = fzData[i]; T4_val = timeData[i]; T4_idx = i; fzAtT4 = fzData[i]; }
+                if (fzData[i] < minFz) { 
+                    minFz = fzData[i]; 
+                    T4_val = timeData[i]; 
+                    T4_idx = i; 
+                    fzAtT4 = fzData[i]; 
+                }
             }
         }
 
-        // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ TRONG 0.5 GIÂY SAU T4
+        // 5. Tìm cực đại phụ và cực tiểu phụ trong 0.5 giây sau T4
         if (T4_idx !== -1) {
-            const maxTimeWindow = timeData[T4_idx] + 0.5; 
+            const maxTimeWindow = timeData[T4_idx] + 0.5;
             let endWindowIdx = T4_idx;
-            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
-                endWindowIdx++; 
+            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) {
+                endWindowIdx++;
             }
-
-            // Cực đại cục bộ trong 0.5s sau T4
+            // Cực đại cục bộ
             let lMaxIdx = T4_idx;
             lMaxFz = fzData[T4_idx];
             for (let i = T4_idx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
+                if (fzData[i] > lMaxFz) { 
+                    lMaxFz = fzData[i]; 
+                    lMaxIdx = i; 
+                }
             }
             localMax_val = timeData[lMaxIdx];
 
-            // Cực tiểu cục bộ từ sau cực đại cục bộ
+            // Cực tiểu cục bộ sau cực đại phụ
             let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
             for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
+                if (fzData[i] < lMinFz) { 
+                    lMinFz = fzData[i]; 
+                    lMinIdx = i; 
+                }
             }
             localMin_val = timeData[lMinIdx];
         }
 
-        // 6. Tìm T3 với điều kiện: Fz của vùng ổn định phải < Fz cực đại phụ (lMaxFz)
-        const stableMs = 500; 
-        const stableW = Math.ceil((stableMs / 1000) * sampleRate);
-
-        function findStableRegion(startIdx, endIdx, maxAllowedFz) {
-            if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) return null;
-            
-            let minDiff = Infinity, bestIdx = -1, bestMean = 0;
-            
-            for (let i = startIdx; i <= endIdx - stableW; i++) {
-                let maxW = -Infinity, minW = Infinity, sumW = 0;
-                for (let j = 0; j < stableW; j++) {
-                    let v = fzData[i + j];
-                    if (v > maxW) maxW = v; if (v < minW) minW = v; sumW += v;
-                }
-                
-                let currentMean = sumW / stableW;
-
-                // Điều kiện bắt buộc: Vùng này phải có lực trung bình nhỏ hơn Cực đại phụ
-                if (maxAllowedFz !== null && currentMean >= maxAllowedFz) {
-                    continue; // Bỏ qua vùng này, quét vùng khác
-                }
-
-                if ((maxW - minW) < minDiff) {
-                    minDiff = maxW - minW; 
-                    bestIdx = i + Math.floor(stableW / 2); 
-                    bestMean = currentMean;
-                }
-            }
-
-            // Nếu tìm thấy vùng thỏa mãn
-            if (bestIdx !== -1) {
-                return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
-            }
-            return null; // Không có vùng nào thỏa điều kiện
-        }
-
+        // =============================================
+        // 6. TÌM T3 MỚI - Khoảng 8s đến 14s + nằm giữa T2 và T4
+        // =============================================
         if (T2_idx !== -1 && T4_idx !== -1) {
-            // Gọi hàm tìm T3 và truyền lMaxFz vào làm mốc chặn trên
-            let t3Data = findStableRegion(T2_idx, T4_idx, lMaxFz);
-            if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
+            const stableMs = 500;
+            const stableW = Math.ceil((stableMs / 1000) * sampleRate);
+
+            // Khoảng tìm kiếm cố định cho T3
+            const searchStartTime = 8.0;
+            const searchEndTime   = 14.0;
+
+            let searchStartIdx = timeData.findIndex(t => t >= searchStartTime);
+            let searchEndIdx   = timeData.findIndex(t => t > searchEndTime);
+            if (searchEndIdx === -1) searchEndIdx = timeData.length;
+
+            if (searchStartIdx !== -1 && searchStartIdx < searchEndIdx) {
+                
+                let minDiff = Infinity;
+                let bestIdx = -1;
+                let bestMean = 0;
+
+                for (let i = searchStartIdx; i <= searchEndIdx - stableW; i++) {
+                    let maxW = -Infinity;
+                    let minW = Infinity;
+                    let sumW = 0;
+
+                    for (let j = 0; j < stableW; j++) {
+                        let v = fzData[i + j];
+                        if (v > maxW) maxW = v;
+                        if (v < minW) minW = v;
+                        sumW += v;
+                    }
+
+                    let currentMean = sumW / stableW;
+
+                    // Điều kiện: lực trung bình < cực đại phụ (lMaxFz)
+                    if (lMaxFz !== null && currentMean >= lMaxFz) {
+                        continue;
+                    }
+
+                    let diff = maxW - minW;
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestIdx = i + Math.floor(stableW / 2);   // điểm giữa cửa sổ
+                        bestMean = currentMean;
+                    }
+                }
+
+                if (bestIdx !== -1) {
+                    const t3Time = timeData[bestIdx];
+                    // Kiểm tra T3 phải nằm giữa T2 và T4
+                    if (t3Time > timeData[T2_idx] && t3Time < timeData[T4_idx]) {
+                        T3_val = t3Time;
+                        T3_idx = bestIdx;
+                        fzAtT3 = bestMean;
+                    }
+                }
+            }
         }
 
-        // 7. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
+        // 7. Tìm T5: Điểm đầu tiên chạm lại mức Fz của T3 sau T4
         if (T4_idx !== -1 && fzAtT3 !== null) {
             for (let i = T4_idx + 1; i < limitIdx; i++) {
-                if (fzData[i] >= fzAtT3) { 
-                    T5_val = timeData[i]; 
-                    T5_idx = i; 
-                    fzAtT5 = fzData[i]; 
-                    break; 
+                if (fzData[i] >= fzAtT3) {
+                    T5_val = timeData[i];
+                    T5_idx = i;
+                    fzAtT5 = fzData[i];
+                    break;
                 }
             }
         }
 
-        chartWrapper.style.display = 'block'; 
+        // Hiển thị kết quả
+        chartWrapper.style.display = 'block';
         resultDiv.innerHTML = `
             <div class="card card-full animate">
                 <h3>Baseline STS (0 - 5.0s)</h3>
@@ -239,12 +294,13 @@ function analyzeSTS(timeData, fzData) {
                 <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau T4"}</div>
             </div>
         `;
-        
+
         // Vẽ biểu đồ
         drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
-        console.error(err); alert("Lỗi phân tích STS: " + err.message);
+        console.error(err);
+        alert("Lỗi phân tích STS: " + err.message);
     }
 }
 
@@ -254,12 +310,11 @@ function analyzeSTS(timeData, fzData) {
 function analyzeSTW(timeData, fzData) {
     const resultDiv = document.getElementById('result');
     const chartWrapper = document.getElementById('chartWrapper');
-
     try {
         const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
         const meanFz5s = jStat.mean(fz5s);
 
-        chartWrapper.style.display = 'block'; 
+        chartWrapper.style.display = 'block';
         resultDiv.innerHTML = `
             <div class="card card-full animate">
                 <h3>Chế độ phân tích: Sit-to-Walk (STW)</h3>
@@ -270,16 +325,15 @@ function analyzeSTW(timeData, fzData) {
                 <div class="value" style="color: #3b82f6;">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
             </div>
         `;
-
         drawChart(timeData, fzData, null, null, null, null, null, null, null, null);
-
     } catch (err) {
-        console.error(err); alert("Lỗi phân tích STW: " + err.message);
+        console.error(err);
+        alert("Lỗi phân tích STW: " + err.message);
     }
 }
 
 // ==========================================
-// HỆ THỐNG VẼ BIỂU ĐỒ & ZOOM
+// HỆ THỐNG VẼ BIỂU ĐỒ
 // ==========================================
 function resetChartZoom() {
     if (fzChartInstance) fzChartInstance.resetZoom();
@@ -290,8 +344,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     if (fzChartInstance) fzChartInstance.destroy();
 
     const annotations = {};
-    
-    // Nét liền dành cho các mốc T chính (T0 -> T5)
+
     function addLine(id, value, color, text) {
         if (value !== null && value !== undefined) {
             annotations[id] = {
@@ -302,7 +355,6 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         }
     }
 
-    // Nét đứt thưa dành riêng cho cực đại phụ và cực tiểu phụ
     function addThinDashedLine(id, value, color, text) {
         if (value !== null && value !== undefined) {
             annotations[id] = {
@@ -319,8 +371,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     addLine('l3', T3, '#3b82f6', 'T3');
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
-    
-    // Luôn luôn vẽ cực đại phụ (Màu cam nhạt) và cực tiểu phụ (Màu tím nhạt)
+
     addThinDashedLine('lMax', lMax, 'rgba(245, 158, 11, 0.7)', 'C.Đại phụ');
     addThinDashedLine('lMin', lMin, 'rgba(139, 92, 246, 0.7)', 'C.Tiểu phụ');
 
@@ -328,11 +379,24 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{ label: 'Fz Total (N)', data: data, borderColor: '#2563eb', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 }]
+            datasets: [{ 
+                label: 'Fz Total (N)', 
+                data: data, 
+                borderColor: '#2563eb', 
+                borderWidth: 1.2, 
+                pointRadius: 0, 
+                fill: false, 
+                tension: 0.1 
+            }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-            scales: { x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } }, y: { title: { display: true, text: 'Lực Fz (N)' } } },
+            responsive: true, 
+            maintainAspectRatio: false, 
+            interaction: { mode: 'index', intersect: false },
+            scales: { 
+                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } }, 
+                y: { title: { display: true, text: 'Lực Fz (N)' } } 
+            },
             plugins: {
                 legend: { display: false },
                 annotation: { annotations: annotations },
@@ -344,3 +408,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         }
     });
 }
+</script>
+
+</body>
+</html>
