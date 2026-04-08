@@ -9,7 +9,10 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script> <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script> <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script> 
+    
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -22,11 +25,18 @@
     <div class="upload-card">
         <div class="config-group">
             <div class="input-item">
+                <label>Loại bài Test</label>
+                <select id="analysisMode" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit; font-weight: 600; color: #1e293b;">
+                    <option value="sts">STS (Sit to Stand)</option>
+                    <option value="stw">STW (Sit to Walk)</option>
+                </select>
+            </div>
+            <div class="input-item">
                 <label>Khử nhiễu T0 (ms)</label>
                 <input type="number" id="windowMs" value="20" min="1" max="500">
             </div>
             <div class="input-item">
-                <label>Chọn tệp dữ liệu (.txt)</label>
+                <label>Chọn tệp .txt</label>
                 <input type="file" id="fileInput" accept=".txt">
             </div>
         </div>
@@ -39,7 +49,7 @@
     <div class="chart-container card animate" style="display: none; height: auto;" id="chartWrapper">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; color: #64748b; font-size: 0.9rem; text-transform: uppercase;">Biểu đồ lực Fz Total</h3>
-            <button onclick="resetChartZoom()" style="padding: 6px 15px; font-size: 0.8rem; background: #64748b; border-radius: 6px;">🔄 Khôi phục Zoom</button>
+            <button onclick="resetChartZoom()" style="padding: 6px 15px; font-size: 0.8rem; background: #64748b; border-radius: 6px; color: white; border: none; cursor: pointer;">🔄 Khôi phục Zoom</button>
         </div>
         <div style="position: relative; height: 400px; width: 100%;">
             <canvas id="fzChart"></canvas>
