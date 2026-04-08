@@ -63,8 +63,9 @@ function processFile() {
 
         if (timeData.length < 2) return;
 
+        // Bổ sung truyền fzAData, fzBData vào analyzeSTS
         if (analysisMode === 'sts') {
-            analyzeSTS(timeData, fzData);
+            analyzeSTS(timeData, fzData, fzAData, fzBData);
         } else if (analysisMode === 'stw') {
             analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight);
         }
@@ -76,7 +77,7 @@ function processFile() {
 // ==========================================
 // BÀI TEST 1: SIT TO STAND (STS)
 // ==========================================
-function analyzeSTS(timeData, fzData) {
+function analyzeSTS(timeData, fzData, fzAData, fzBData) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -227,7 +228,8 @@ function analyzeSTS(timeData, fzData) {
             </div>
         `;
         
-        drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
+        // Cập nhật hàm drawChart thêm fzAData và fzBData
+        drawChart(timeData, fzData, fzAData, fzBData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
         console.error(err); alert("Lỗi phân tích STS: " + err.message);
@@ -388,7 +390,8 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
             </div>
         `;
 
-        drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, null, null);
+        // Cập nhật hàm drawChart thêm fzAData và fzBData
+        drawChart(timeData, fzData, fzAData, fzBData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, null, null);
 
     } catch (err) {
         console.error(err); alert("Lỗi phân tích STW: " + err.message);
@@ -402,7 +405,7 @@ function resetChartZoom() {
     if (fzChartInstance) fzChartInstance.resetZoom();
 }
 
-function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
+function drawChart(labels, dataTotal, dataA, dataB, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     const ctx = document.getElementById('fzChart').getContext('2d');
     if (fzChartInstance) fzChartInstance.destroy();
 
@@ -442,13 +445,43 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{ label: 'Fz Total (N)', data: data, borderColor: '#2563eb', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 }]
+            datasets: [
+                { 
+                    label: 'Fz Total (N)', 
+                    data: dataTotal, 
+                    borderColor: '#2563eb', 
+                    borderWidth: 1.5, 
+                    pointRadius: 0, 
+                    fill: false, 
+                    tension: 0.1 
+                },
+                { 
+                    label: 'Fz Forceplate A (N)', 
+                    data: dataA, 
+                    borderColor: '#ef4444', 
+                    borderWidth: 1.2, 
+                    borderDash: [5, 5], 
+                    pointRadius: 0, 
+                    fill: false, 
+                    tension: 0.1 
+                },
+                { 
+                    label: 'Fz Forceplate B (N)', 
+                    data: dataB, 
+                    borderColor: '#10b981', 
+                    borderWidth: 1.2, 
+                    borderDash: [5, 5], 
+                    pointRadius: 0, 
+                    fill: false, 
+                    tension: 0.1 
+                }
+            ]
         },
         options: {
             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
             scales: { x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } }, y: { title: { display: true, text: 'Lực Fz (N)' } } },
             plugins: {
-                legend: { display: false },
+                legend: { display: true, position: 'top', labels: { boxWidth: 12 } }, // Hiển thị chú thích (Legend)
                 annotation: { annotations: annotations },
                 zoom: {
                     pan: { enabled: true, mode: 'x' },
