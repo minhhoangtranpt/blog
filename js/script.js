@@ -82,6 +82,9 @@ function analyzeSTS(timeData, fzData) {
         let T3_val = null, T3_idx = -1, fzAtT3 = null;
         let T4_val = null, T4_idx = -1, fzAtT4 = null;
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
+        
+        // Cực đại phụ và cực tiểu phụ
+        let localMax_val = null, localMin_val = null;
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
@@ -147,9 +150,30 @@ function analyzeSTS(timeData, fzData) {
             if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
         }
 
-        // T5: Tìm điểm đầu tiên (gần T4 nhất) phục hồi chạm mức T3
+        // T5 (Với Cực đại phụ và Cực tiểu phụ trong 1 giây sau T4)
         if (T4_idx !== -1 && fzAtT3 !== null) {
-            for (let i = T4_idx + 1; i < limitIdx; i++) {
+            const maxTimeWindow = timeData[T4_idx] + 1.0; 
+            let endWindowIdx = T4_idx;
+            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
+                endWindowIdx++; 
+            }
+
+            // 1. Cực đại cục bộ
+            let lMaxIdx = T4_idx, lMaxFz = fzData[T4_idx];
+            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
+            }
+            localMax_val = timeData[lMaxIdx];
+
+            // 2. Cực tiểu cục bộ
+            let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
+            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
+            }
+            localMin_val = timeData[lMinIdx];
+
+            // 3. T5: Phục hồi lại T3 từ sau cực tiểu cục bộ
+            for (let i = lMinIdx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
                     T5_val = timeData[i]; 
                     T5_idx = i; 
@@ -194,12 +218,12 @@ function analyzeSTS(timeData, fzData) {
             <div class="card animate" style="border-top: 4px solid #64748b;">
                 <h3>T5 (Phục hồi cuối)</h3>
                 <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau T4"}</div>
+                <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu phụ"}</div>
             </div>
         `;
         
         // Vẽ biểu đồ cho STS
-        drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val);
+        drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
         console.error(err); alert("Lỗi phân tích STS: " + err.message);
@@ -230,7 +254,7 @@ function analyzeSTW(timeData, fzData) {
         `;
 
         // Vẽ biểu đồ thô cho STW (Chưa có đường kẻ mốc T)
-        drawChart(timeData, fzData, null, null, null, null, null, null);
+        drawChart(timeData, fzData, null, null, null, null, null, null, null, null);
 
     } catch (err) {
         console.error(err); alert("Lỗi phân tích STW: " + err.message);
@@ -244,7 +268,7 @@ function resetChartZoom() {
     if (fzChartInstance) fzChartInstance.resetZoom();
 }
 
-function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
+function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     const ctx = document.getElementById('fzChart').getContext('2d');
     if (fzChartInstance) fzChartInstance.destroy();
 
@@ -260,12 +284,26 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
         }
     }
 
+    function addThinLine(id, value, text) {
+        if (value !== null && value !== undefined && value !== T4 && value !== T5) {
+            annotations[id] = {
+                type: 'line', xMin: value, xMax: value,
+                borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2],
+                label: { display: true, content: text, position: 'end', backgroundColor: 'rgba(148, 163, 184, 0.8)', color: '#fff', font: { size: 9 } }
+            };
+        }
+    }
+
     addLine('l0', T0, '#ef4444', 'T0');
     addLine('l1', T1, '#10b981', 'T1');
     addLine('l2', T2, '#f59e0b', 'T2');
     addLine('l3', T3, '#3b82f6', 'T3');
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
+    
+    // Vẽ cực đại phụ và cực tiểu phụ
+    addThinLine('lMax', lMax, 'C.Đại phụ');
+    addThinLine('lMin', lMin, 'C.Tiểu phụ');
 
     fzChartInstance = new Chart(ctx, {
         type: 'line',
