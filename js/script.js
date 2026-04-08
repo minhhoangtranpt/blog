@@ -85,12 +85,13 @@ function analyzeSTS(timeData, fzData) {
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
         
         let localMax_val = null, localMin_val = null;
+        let lMaxFz = null; // Biến lưu Fz của cực đại phụ
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
         const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-        // T0
+        // 1. Tìm T0
         for (let i = 0; i < limitIdx - windowSize; i++) {
             let isStable = true;
             for (let j = 0; j < windowSize; j++) {
@@ -99,21 +100,21 @@ function analyzeSTS(timeData, fzData) {
             if (isStable) { T0_val = timeData[i]; T0_idx = i; fzAtT0 = fzData[i]; break; }
         }
 
-        // T1
+        // 2. Tìm T1
         if (T0_idx !== -1) {
             for (let i = T0_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT0) { T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i]; break; }
             }
         }
 
-        // T2
+        // 3. Tìm T2 (Cực đại chính)
         let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
         let maxFz = -Infinity;
         for (let i = searchStartT2; i < limitIdx; i++) {
             if (fzData[i] > maxFz) { maxFz = fzData[i]; T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i]; }
         }
 
-        // T4
+        // 4. Tìm T4 (Cực tiểu chính)
         if (T2_idx !== -1) {
             let minFz = Infinity;
             for (let i = T2_idx; i < limitIdx; i++) {
@@ -121,38 +122,75 @@ function analyzeSTS(timeData, fzData) {
             }
         }
 
-        // T3
+        // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ (Trước T3 để lấy mức trần)
+        if (T4_idx !== -1) {
+            const maxTimeWindow = timeData[T4_idx] + 1.0; 
+            let endWindowIdx = T4_idx;
+            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
+                endWindowIdx++; 
+            }
+
+            // Cực đại cục bộ trong 1s sau T4
+            let lMaxIdx = T4_idx;
+            lMaxFz = fzData[T4_idx];
+            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
+            }
+            localMax_val = timeData[lMaxIdx];
+
+            // Cực tiểu cục bộ từ sau cực đại cục bộ
+            let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
+            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
+            }
+            localMin_val = timeData[lMinIdx];
+        }
+
+        // 6. Tìm T3 với điều kiện: Fz của vùng ổn định phải < Fz cực đại phụ (lMaxFz)
         const stableMs = 500; 
         const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
-        function findStableRegion(startIdx, endIdx) {
+        function findStableRegion(startIdx, endIdx, maxAllowedFz) {
             if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) return null;
-            if ((endIdx - startIdx) < stableW) {
-                let mid = Math.floor((startIdx + endIdx) / 2);
-                return { idx: mid, val: timeData[mid], fz: fzData[mid] };
-            }
-            let minDiff = Infinity, bestIdx = startIdx, bestMean = 0;
+            
+            let minDiff = Infinity, bestIdx = -1, bestMean = 0;
+            
             for (let i = startIdx; i <= endIdx - stableW; i++) {
                 let maxW = -Infinity, minW = Infinity, sumW = 0;
                 for (let j = 0; j < stableW; j++) {
                     let v = fzData[i + j];
                     if (v > maxW) maxW = v; if (v < minW) minW = v; sumW += v;
                 }
+                
+                let currentMean = sumW / stableW;
+
+                // Điều kiện bắt buộc: Vùng này phải có lực trung bình nhỏ hơn Cực đại phụ
+                if (maxAllowedFz !== null && currentMean >= maxAllowedFz) {
+                    continue; // Bỏ qua vùng này, quét vùng khác
+                }
+
                 if ((maxW - minW) < minDiff) {
-                    minDiff = maxW - minW; bestIdx = i + Math.floor(stableW / 2); bestMean = sumW / stableW;
+                    minDiff = maxW - minW; 
+                    bestIdx = i + Math.floor(stableW / 2); 
+                    bestMean = currentMean;
                 }
             }
-            return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
+
+            // Nếu tìm thấy vùng thỏa mãn
+            if (bestIdx !== -1) {
+                return { idx: bestIdx, val: timeData[bestIdx], fz: bestMean };
+            }
+            return null; // Không có vùng nào thỏa điều kiện
         }
 
         if (T2_idx !== -1 && T4_idx !== -1) {
-            let t3Data = findStableRegion(T2_idx, T4_idx);
+            // Gọi hàm tìm T3 và truyền lMaxFz vào làm mốc chặn trên
+            let t3Data = findStableRegion(T2_idx, T4_idx, lMaxFz);
             if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
         }
 
-        // T5 và các điểm phụ
+        // 7. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
         if (T4_idx !== -1 && fzAtT3 !== null) {
-            // 1. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
             for (let i = T4_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
                     T5_val = timeData[i]; 
@@ -161,27 +199,6 @@ function analyzeSTS(timeData, fzData) {
                     break; 
                 }
             }
-
-            // 2. Tìm Cực đại phụ và Cực tiểu phụ (chỉ để vẽ đường gióng mờ)
-            const maxTimeWindow = timeData[T4_idx] + 1.0; 
-            let endWindowIdx = T4_idx;
-            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
-                endWindowIdx++; 
-            }
-
-            // Cực đại cục bộ trong 1s sau T4
-            let lMaxIdx = T4_idx, lMaxFz = fzData[T4_idx];
-            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
-            }
-            localMax_val = timeData[lMaxIdx];
-
-            // Cực tiểu cục bộ từ sau cực đại cục bộ đó
-            let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
-            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
-            }
-            localMin_val = timeData[lMinIdx];
         }
 
         chartWrapper.style.display = 'block'; 
@@ -223,7 +240,7 @@ function analyzeSTS(timeData, fzData) {
             </div>
         `;
         
-        // Vẽ biểu đồ cho STS
+        // Vẽ biểu đồ
         drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
