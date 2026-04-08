@@ -63,7 +63,6 @@ function processFile() {
 
         if (timeData.length < 2) return;
 
-        // Bổ sung truyền fzAData, fzBData vào analyzeSTS
         if (analysisMode === 'sts') {
             analyzeSTS(timeData, fzData, fzAData, fzBData);
         } else if (analysisMode === 'stw') {
@@ -228,7 +227,6 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
             </div>
         `;
         
-        // Cập nhật hàm drawChart thêm fzAData và fzBData
         drawChart(timeData, fzData, fzAData, fzBData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, localMax_val, localMin_val);
 
     } catch (err) {
@@ -292,15 +290,13 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
         let refStableLabel = "---";
         
         if (subjectWeight !== null && !isNaN(subjectWeight)) {
-            refStableFz = subjectWeight * 9.81; // Đổi từ kg sang Newton
+            refStableFz = subjectWeight * 9.81; 
             refStableLabel = `${refStableFz.toFixed(2)} N (${subjectWeight}kg)`;
         } else {
-            // Dự phòng nếu file không có Subject weight
             refStableFz = meanFz5s; 
             refStableLabel = `${refStableFz.toFixed(2)} N (Dự phòng 5s)`;
         }
 
-        // Quét đi tới từ sau T2
         if (T2_idx !== -1 && refStableFz !== null) {
             for (let i = T2_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] <= refStableFz) { 
@@ -312,23 +308,14 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
             }
         }
 
-        // 5. T5: Khi người đo bước ra khỏi bàn lực (Fz total = 0, bù nhiễu <= 5N)
-        if (T2_idx !== -1) {
-            for (let i = T2_idx; i < timeData.length; i++) {
-                if (fzData[i] <= 5.0) { 
-                    T5_idx = i;
-                    T5_val = timeData[i];
-                    fzAtT5 = fzData[i];
-                    break;
-                }
-            }
-        }
-
-        // 6. T4: Fz của 1 bên forceplate bất kỳ (A hoặc B) < 5% Subject weight duy trì trong 50ms
+        // 5. T4: TÌM T4 TRƯỚC T5
+        // Fz của 1 bên forceplate bất kỳ (A hoặc B) < 5% Subject weight duy trì trong 50ms
         const window50 = Math.ceil((50 / 1000) * sampleRate);
+        let footOffAtT4 = null; // Ghi nhớ chân nào nhấc ở T4 ('A' hoặc 'B')
+
         if (T3_idx !== -1 && refStableFz !== null) {
-            const thresholdT4 = 0.05 * refStableFz; // Mức 5% của Subject Weight
-            const searchEnd = T5_idx !== -1 ? T5_idx : timeData.length; // Tìm đến T5 hoặc kết thúc file
+            const thresholdT4 = 0.05 * refStableFz; 
+            const searchEnd = timeData.length; 
 
             for (let i = T3_idx; i <= searchEnd - window50; i++) {
                 let isStableA = true;
@@ -341,11 +328,26 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
                     if (!isStableA && !isStableB) break;
                 }
                 
-                // Nếu chân bên A hoặc chân bên B thỏa mãn việc nhấc lên khỏi bàn lực (lực rớt xuống < 5% SW liên tục 50ms)
                 if (isStableA || isStableB) {
                     T4_idx = i;
                     T4_val = timeData[i];
-                    fzAtT4 = fzData[i]; // Lấy giá trị tổng Fz tại thời điểm nhấc 1 chân
+                    fzAtT4 = fzData[i]; 
+                    footOffAtT4 = isStableA ? 'A' : 'B';
+                    break;
+                }
+            }
+        }
+
+        // 6. T5: CHÂN CÒN LẠI rời bàn lực (Fz chân còn lại <= 5N)
+        if (T4_idx !== -1 && footOffAtT4 !== null) {
+            for (let i = T4_idx; i < timeData.length; i++) {
+                // Xác định lực của chân chưa nhấc ở T4
+                let fzRemainingFoot = (footOffAtT4 === 'A') ? fzBData[i] : fzAData[i];
+                
+                if (fzRemainingFoot <= 5.0) { 
+                    T5_idx = i;
+                    T5_val = timeData[i];
+                    fzAtT5 = fzData[i]; // Lấy giá trị Fz Total trên biểu đồ chính
                     break;
                 }
             }
@@ -381,16 +383,15 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
                 <h3>T4 (Nhấc 1 chân)</h3>
                 <div class="value" style="color: #8b5cf6;">${T4_val !== null ? T4_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T4_val !== null ? `Fz Total: ${fzAtT4.toFixed(2)} N` : "Không thấy FzA/B < 5%"}</div>
+                <div class="info-footer">${T4_val !== null ? `Nhấc chân ${footOffAtT4}` : "Không thấy FzA/B < 5%"}</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #64748b;">
                 <h3>T5 (Rời bàn lực)</h3>
                 <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${fzAtT5 !== null ? `Fz ≈ 0 N` : "Không tìm thấy"}</div>
+                <div class="info-footer">${T5_val !== null ? `Chân ${footOffAtT4 === 'A' ? 'B' : 'A'} <= 5N` : "Không tìm thấy"}</div>
             </div>
         `;
 
-        // Cập nhật hàm drawChart thêm fzAData và fzBData
         drawChart(timeData, fzData, fzAData, fzBData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, null, null);
 
     } catch (err) {
@@ -481,7 +482,7 @@ function drawChart(labels, dataTotal, dataA, dataB, T0, T1, T2, T3, T4, T5, lMax
             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
             scales: { x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } }, y: { title: { display: true, text: 'Lực Fz (N)' } } },
             plugins: {
-                legend: { display: true, position: 'top', labels: { boxWidth: 12 } }, // Hiển thị chú thích (Legend)
+                legend: { display: true, position: 'top', labels: { boxWidth: 12 } },
                 annotation: { annotations: annotations },
                 zoom: {
                     pan: { enabled: true, mode: 'x' },
