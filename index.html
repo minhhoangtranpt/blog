@@ -1,47 +1,91 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TwinPlates Analyzer - UMP</title>
+// ... (Phần logic tính T0-T5 ở trên giữ nguyên, chỉ thay đoạn drawChart trở xuống)
+
+function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
+    const ctx = document.getElementById('fzChart').getContext('2d');
+    if (fzChartInstance) fzChartInstance.destroy();
+
+    const annotations = {};
     
-    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.2/dist/jstat.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    function addLine(id, value, color, text) {
+        if (value !== null) {
+            annotations[id] = {
+                type: 'line', xMin: value, xMax: value,
+                borderColor: color, borderWidth: 2, borderDash: [4, 4],
+                label: {
+                    display: true, content: text, position: 'start',
+                    backgroundColor: color, color: '#fff', font: { size: 10 }
+                }
+            };
+        }
+    }
+
+    function addThinLine(id, value, text) {
+        if (value !== null && value !== T4 && value !== T5) {
+            annotations[id] = {
+                type: 'line', xMin: value, xMax: value,
+                borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2],
+                label: {
+                    display: true, content: text, position: 'end',
+                    backgroundColor: 'rgba(148, 163, 184, 0.8)', color: '#fff', font: { size: 9 }
+                }
+            };
+        }
+    }
+
+    addLine('l0', T0, '#ef4444', 'T0');
+    addLine('l1', T1, '#10b981', 'T1');
+    addLine('l2', T2, '#f59e0b', 'T2');
+    addLine('l3', T3, '#3b82f6', 'T3');
+    addLine('l4', T4, '#8b5cf6', 'T4');
+    addLine('l5', T5, '#64748b', 'T5');
     
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+    addThinLine('lMax', lMax, 'C.Đại phụ');
+    addThinLine('lMin', lMin, 'C.Tiểu phụ');
 
-<div class="container">
-    <header>
-        <h1>TwinPlates Analyzer</h1>
-        <p class="description">Công cụ phân tích mốc thời gian</p>
-    </header>
+    fzChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Fz Total (N)', data: data,
+                borderColor: '#2563eb', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } },
+                y: { title: { display: true, text: 'Lực Fz (N)' } }
+            },
+            plugins: {
+                legend: { display: false },
+                annotation: { annotations: annotations },
+                // === CẤU HÌNH ZOOM BỔ SUNG ===
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x', // Chỉ cho phép kéo sang trái/phải theo trục X
+                        modifierKey: 'shift', // (Tùy chọn) Giữ phím Shift để kéo
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true, // Lăn chuột để zoom
+                        },
+                        pinch: {
+                            enabled: true  // Vuốt 2 ngón tay trên màn hình cảm ứng để zoom
+                        },
+                        mode: 'x', // Chỉ thu phóng theo trục thời gian X để đường lực Y không bị dẹt
+                    }
+                }
+            }
+        }
+    });
+}
 
-    <div class="upload-card">
-        <div class="config-group">
-            <div class="input-item">
-                <label>Khử nhiễu (ms)</label>
-                <input type="number" id="windowMs" value="20" min="1" max="500">
-            </div>
-            <div class="input-item">
-                <label>Chọn tệp .txt</label>
-                <input type="file" id="fileInput" accept=".txt">
-            </div>
-        </div>
-        <button onclick="processFile()">Tính toán & Vẽ biểu đồ</button>
-    </div>
-
-    <div id="result" class="result-grid">
-        </div>
-
-    <div class="chart-container card animate" style="display: none;" id="chartWrapper">
-        <h3>Biểu đồ lực Fz Total</h3>
-        <canvas id="fzChart"></canvas>
-    </div>
-</div>
-
-<script src="js/script.js"></script>
-</body>
-</html>
+// Hàm để nút "Khôi phục Zoom" gọi
+function resetChartZoom() {
+    if (fzChartInstance) {
+        fzChartInstance.resetZoom();
+    }
+}
