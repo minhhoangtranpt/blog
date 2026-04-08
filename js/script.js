@@ -34,7 +34,7 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // --- CHỈ ĐỌC DỮ LIỆU ĐẾN 10 GIÂY ---
+        // Đọc TOÀN BỘ dữ liệu để vẽ biểu đồ đầy đủ
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -43,7 +43,6 @@ function processFile() {
             const fz = parseFloat(cols[1]); 
 
             if (!isNaN(t) && !isNaN(fz)) {
-                if (t > 10.0) break; // Ngắt ngay lập tức khi thời gian vượt qua 10.0s
                 timeData.push(t);
                 fzData.push(fz);
             }
@@ -52,6 +51,11 @@ function processFile() {
         if (timeData.length < 2) return;
 
         try {
+            // --- TẠO MỐC CHẶN 10 GIÂY ---
+            // Tìm vị trí (index) của mốc 10.0 giây trong mảng dữ liệu
+            let limitIdx = timeData.findIndex(t => t > 10.0);
+            if (limitIdx === -1) limitIdx = timeData.length; // Nếu file ngắn hơn 10s thì lấy hết
+
             // --- 1. BASELINE VÀ ĐỘ LỆCH CHUẨN (0 - 5s) ---
             const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
             const meanFz5s = jStat.mean(fz5s);
@@ -69,8 +73,8 @@ function processFile() {
             const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
             const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-            // --- T0: Giảm quá 4 SD ---
-            for (let i = 0; i < timeData.length - windowSize; i++) {
+            // --- T0: Giảm quá 4 SD (Chỉ tìm trước limitIdx) ---
+            for (let i = 0; i < limitIdx - windowSize; i++) {
                 let isStable = true;
                 for (let j = 0; j < windowSize; j++) {
                     if (fzData[i + j] >= thresholdT0) {
@@ -83,9 +87,9 @@ function processFile() {
                 }
             }
 
-            // --- T1: Phục hồi bằng Fz của T0 ---
+            // --- T1: Phục hồi bằng Fz của T0 (Chỉ tìm trước limitIdx) ---
             if (T0_idx !== -1) {
-                for (let i = T0_idx + 1; i < timeData.length; i++) {
+                for (let i = T0_idx + 1; i < limitIdx; i++) {
                     if (fzData[i] >= fzAtT0) {
                         T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i];
                         break;
@@ -93,20 +97,20 @@ function processFile() {
                 }
             }
 
-            // --- T2: Cực đại (Từ T1 trở đi) ---
+            // --- T2: Cực đại (Chỉ tìm từ T1 đến giới hạn 10s) ---
             let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
             let maxFz = -Infinity;
-            for (let i = searchStartT2; i < timeData.length; i++) {
+            for (let i = searchStartT2; i < limitIdx; i++) {
                 if (fzData[i] > maxFz) {
                     maxFz = fzData[i];
                     T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i];
                 }
             }
 
-            // --- T4: Cực tiểu (Từ T2 trở đi) ---
+            // --- T4: Cực tiểu (Chỉ tìm từ T2 đến giới hạn 10s) ---
             if (T2_idx !== -1) {
                 let minFz = Infinity;
-                for (let i = T2_idx; i < timeData.length; i++) {
+                for (let i = T2_idx; i < limitIdx; i++) {
                     if (fzData[i] < minFz) {
                         minFz = fzData[i];
                         T4_val = timeData[i]; T4_idx = i; fzAtT4 = fzData[i];
@@ -153,9 +157,9 @@ function processFile() {
                 if(t3Data) { T3_val = t3Data.val; fzAtT3 = t3Data.fz; }
             }
 
-            // T5: Tìm từ T4 đến cuối đoạn dữ liệu (tối đa là mốc 10.0s)
+            // T5: Tìm từ T4 đến giới hạn 10s (limitIdx)
             if (T4_idx !== -1) {
-                let t5Data = findStableRegion(T4_idx, timeData.length - 1);
+                let t5Data = findStableRegion(T4_idx, limitIdx - 1);
                 if(t5Data) { T5_val = t5Data.val; fzAtT5 = t5Data.fz; }
             }
 
@@ -249,7 +253,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5) {
             responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
-                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' }, max: 10.0 }, // Cố định hiển thị trục X tối đa 10s
+                x: { type: 'linear', title: { display: true, text: 'Thời gian (s)' } },
                 y: { title: { display: true, text: 'Lực Fz (N)' } }
             },
             plugins: {
