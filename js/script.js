@@ -114,7 +114,7 @@ function processFile() {
             }
 
             // --- T3 & T5: Vùng chênh lệch tối thiểu ---
-            // Cửa sổ 500ms (0.5 giây) để quét vùng ổn định. (Bạn có thể sửa số 500 thành 1000 nếu muốn quét 1 giây)
+            // Cửa sổ 5000ms (5 giây) để quét vùng ổn định. (Bạn có thể sửa số)
             const stableMs = 500; 
             const stableW = Math.ceil((stableMs / 1000) * sampleRate);
 
