@@ -124,7 +124,6 @@ function analyzeSTS(timeData, fzData) {
 
         // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ TRONG 0.5 GIÂY SAU T4
         if (T4_idx !== -1) {
-            // ---> ĐIỀU CHỈNH THÀNH 0.5 GIÂY <---
             const maxTimeWindow = timeData[T4_idx] + 0.5; 
             let endWindowIdx = T4_idx;
             while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
@@ -292,6 +291,7 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
 
     const annotations = {};
     
+    // Nét liền dành cho các mốc T chính (T0 -> T5)
     function addLine(id, value, color, text) {
         if (value !== null && value !== undefined) {
             annotations[id] = {
@@ -302,12 +302,13 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
         }
     }
 
-    function addThinLine(id, value, text) {
-        if (value !== null && value !== undefined && value !== T4 && value !== T5) {
+    // Nét đứt thưa dành riêng cho cực đại phụ và cực tiểu phụ
+    function addThinDashedLine(id, value, color, text) {
+        if (value !== null && value !== undefined) {
             annotations[id] = {
                 type: 'line', xMin: value, xMax: value,
-                borderColor: '#94a3b8', borderWidth: 1, borderDash: [2, 2],
-                label: { display: true, content: text, position: 'end', backgroundColor: 'rgba(148, 163, 184, 0.8)', color: '#fff', font: { size: 9 } }
+                borderColor: color, borderWidth: 1.5, borderDash: [5, 5],
+                label: { display: true, content: text, position: 'end', backgroundColor: color, color: '#fff', font: { size: 9 } }
             };
         }
     }
@@ -319,9 +320,9 @@ function drawChart(labels, data, T0, T1, T2, T3, T4, T5, lMax, lMin) {
     addLine('l4', T4, '#8b5cf6', 'T4');
     addLine('l5', T5, '#64748b', 'T5');
     
-    // Vẽ cực đại phụ và cực tiểu phụ
-    addThinLine('lMax', lMax, 'C.Đại phụ');
-    addThinLine('lMin', lMin, 'C.Tiểu phụ');
+    // Luôn luôn vẽ cực đại phụ (Màu cam nhạt) và cực tiểu phụ (Màu tím nhạt)
+    addThinDashedLine('lMax', lMax, 'rgba(245, 158, 11, 0.7)', 'C.Đại phụ');
+    addThinDashedLine('lMin', lMin, 'rgba(139, 92, 246, 0.7)', 'C.Tiểu phụ');
 
     fzChartInstance = new Chart(ctx, {
         type: 'line',
