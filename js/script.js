@@ -81,7 +81,7 @@ function analyzeSTS(timeData, fzData) {
         const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
         const meanFz5s = jStat.mean(fz5s);
         const stdFz5s = jStat.stdev(fz5s);
-        const thresholdT0 = meanFz5s - (4 * stdFz5s);
+        const thresholdT0 = meanFz5s - (3 * stdFz5s);
 
         let T0_val = null, T0_idx = -1, fzAtT0 = null;
         let T1_val = null, T1_idx = -1, fzAtT1 = null;
