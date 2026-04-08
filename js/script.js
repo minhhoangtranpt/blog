@@ -13,7 +13,8 @@ function processFile() {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        const lines = e.target.result.split(/\r?\n/);
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/);
         let dataStartIndex = -1;
         
         for (let i = 0; i < lines.length; i++) {
@@ -83,7 +84,6 @@ function analyzeSTS(timeData, fzData) {
         let T4_val = null, T4_idx = -1, fzAtT4 = null;
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
         
-        // Cực đại phụ và cực tiểu phụ
         let localMax_val = null, localMin_val = null;
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
@@ -150,30 +150,10 @@ function analyzeSTS(timeData, fzData) {
             if(t3Data) { T3_val = t3Data.val; T3_idx = t3Data.idx; fzAtT3 = t3Data.fz; }
         }
 
-        // T5 (Với Cực đại phụ và Cực tiểu phụ trong 1 giây sau T4)
+        // T5 và các điểm phụ
         if (T4_idx !== -1 && fzAtT3 !== null) {
-            const maxTimeWindow = timeData[T4_idx] + 1.0; 
-            let endWindowIdx = T4_idx;
-            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
-                endWindowIdx++; 
-            }
-
-            // 1. Cực đại cục bộ
-            let lMaxIdx = T4_idx, lMaxFz = fzData[T4_idx];
-            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
-            }
-            localMax_val = timeData[lMaxIdx];
-
-            // 2. Cực tiểu cục bộ
-            let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
-            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
-                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
-            }
-            localMin_val = timeData[lMinIdx];
-
-            // 3. T5: Phục hồi lại T3 từ sau cực tiểu cục bộ
-            for (let i = lMinIdx + 1; i < limitIdx; i++) {
+            // 1. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
+            for (let i = T4_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
                     T5_val = timeData[i]; 
                     T5_idx = i; 
@@ -181,6 +161,27 @@ function analyzeSTS(timeData, fzData) {
                     break; 
                 }
             }
+
+            // 2. Tìm Cực đại phụ và Cực tiểu phụ (chỉ để vẽ đường gióng mờ)
+            const maxTimeWindow = timeData[T4_idx] + 1.0; 
+            let endWindowIdx = T4_idx;
+            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
+                endWindowIdx++; 
+            }
+
+            // Cực đại cục bộ trong 1s sau T4
+            let lMaxIdx = T4_idx, lMaxFz = fzData[T4_idx];
+            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
+            }
+            localMax_val = timeData[lMaxIdx];
+
+            // Cực tiểu cục bộ từ sau cực đại cục bộ đó
+            let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
+            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
+                if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
+            }
+            localMin_val = timeData[lMinIdx];
         }
 
         chartWrapper.style.display = 'block'; 
@@ -216,9 +217,9 @@ function analyzeSTS(timeData, fzData) {
                 <div class="info-footer">Fz Min: ${fzAtT4 !== null ? fzAtT4.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #64748b;">
-                <h3>T5 (Phục hồi cuối)</h3>
+                <h3>T5 (Chạm mức T3)</h3>
                 <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau cực tiểu phụ"}</div>
+                <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau T4"}</div>
             </div>
         `;
         
@@ -253,7 +254,6 @@ function analyzeSTW(timeData, fzData) {
             </div>
         `;
 
-        // Vẽ biểu đồ thô cho STW (Chưa có đường kẻ mốc T)
         drawChart(timeData, fzData, null, null, null, null, null, null, null, null);
 
     } catch (err) {
