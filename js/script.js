@@ -1,4 +1,4 @@
-let fzChartInstance = null; // Biến lưu trữ đối tượng biểu đồ để có thể reset khi tính toán lại
+let fzChartInstance = null;
 
 function processFile() {
     const fileInput = document.getElementById('fileInput');
@@ -18,11 +18,9 @@ function processFile() {
         const text = e.target.result;
         const lines = text.split(/\r?\n/);
         
-        // 1. Tìm dòng bắt đầu của dữ liệu (Skip Header)
         let dataStartIndex = -1;
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes("Time (s)")) {
-                // Kiểm tra nếu có hàng tiêu đề phụ (như dòng chứa chữ TOTAL)
                 dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
                 break;
             }
@@ -33,7 +31,6 @@ function processFile() {
             return;
         }
 
-        // 2. Trích xuất dữ liệu Cột Time và TOTAL Fz
         let timeData = [];
         let fzData = [];
 
@@ -42,7 +39,7 @@ function processFile() {
             if (!line) continue;
             const cols = line.split('\t');
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]); // Cột Fz nằm trong nhóm TOTAL (cột thứ 2)
+            const fz = parseFloat(cols[1]); 
 
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
@@ -56,38 +53,25 @@ function processFile() {
         }
 
         try {
-            // --- A. TÍNH BASELINE (TRUNG BÌNH 5 GIÂY ĐẦU) ---
+            // --- 1. TÍNH BASELINE & ĐỘ LỆCH CHUẨN (0-5s) ---
             const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
             const meanFz5s = jStat.mean(fz5s);
+            const stdFz5s = jStat.stdev(fz5s);
 
-            // --- B. XÁC ĐỊNH NGƯỠNG T0 (GIẢM > 2.5% SO VỚI BASELINE) ---
-            // Onset of movement: Lực rớt xuống dưới mức 97.5% của trọng lượng tĩnh
-            const thresholdT0 = 0.975 * meanFz5s;
+            // --- 2. XÁC ĐỊNH NGƯỠNG T0 (Mean - 4*SD) ---
+            const thresholdT0 = meanFz5s - (4 * stdFz5s);
 
-            // --- C. TÌM T1 (ĐỈNH LỰC TRONG 10 GIÂY ĐẦU) ---
-            // Tìm T1 trước để làm mốc chặn (T0 phải xảy ra trước T1)
-            let maxFz = -Infinity;
-            let T1_idx = -1;
-            for (let i = 0; i < timeData.length; i++) {
-                if (timeData[i] > 10.0) break; // Giới hạn tìm kiếm trong 10s đầu
-                if (fzData[i] > maxFz) {
-                    maxFz = fzData[i];
-                    T1_idx = i;
-                }
-            }
-            const T1 = timeData[T1_idx];
-
-            // --- D. TÌM T0 (KHỞI PHÁT - TRƯỚC T1) ---
-            // Tính số mẫu cần thiết dựa trên ms người dùng nhập và Sample Rate thực tế
+            // --- 3. TÌM T0 (Giảm quá 4 SD) ---
             const sampleRate = 1 / (timeData[1] - timeData[0]);
             const windowMs = parseInt(windowMsInput.value) || 20;
             const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
             
             let T0_val = null;
-            // Chỉ tìm kiếm trong khoảng từ đầu file đến mốc T1
-            for (let i = 0; i <= T1_idx - windowSize; i++) {
+            let T0_idx = -1;
+            let fzAtT0 = null;
+
+            for (let i = 0; i < timeData.length - windowSize; i++) {
                 let isStableMovement = true;
-                // Kiểm tra xem lực có duy trì dưới ngưỡng liên tục trong 'windowSize' mẫu không
                 for (let j = 0; j < windowSize; j++) {
                     if (fzData[i + j] >= thresholdT0) {
                         isStableMovement = false;
@@ -96,36 +80,55 @@ function processFile() {
                 }
                 if (isStableMovement) {
                     T0_val = timeData[i];
-                    break; // Tìm thấy mốc đầu tiên thỏa mãn thì dừng ngay
+                    T0_idx = i;
+                    fzAtT0 = fzData[i]; // Lưu lại giá trị Fz tại mốc T0
+                    break;
                 }
             }
 
-            // --- E. HIỂN THỊ KẾT QUẢ ---
-            chartWrapper.style.display = 'block'; // Hiện khung biểu đồ
+            // --- 4. TÌM T1 (Phục hồi bằng Fz của T0) ---
+            let T1_val = null;
+            let fzAtT1 = null;
+
+            if (T0_idx !== -1) {
+                // Chỉ tìm T1 BẮT ĐẦU TỪ sau T0
+                for (let i = T0_idx + 1; i < timeData.length; i++) {
+                    // Khi Fz tăng trở lại và chạm/vượt mức Fz của T0
+                    if (fzData[i] >= fzAtT0) {
+                        T1_val = timeData[i];
+                        fzAtT1 = fzData[i];
+                        break;
+                    }
+                }
+            }
+
+            // --- 5. HIỂN THỊ KẾT QUẢ ---
+            chartWrapper.style.display = 'block'; 
             resultDiv.innerHTML = `
                 <div class="card card-full animate">
                     <h3>Thông số Baseline (0 - 5.0s)</h3>
-                    <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N (Trọng lượng TB)</span></div>
-                    <div class="info-footer">Ngưỡng Onset T0 (< 97.5% Baseline): <b>${thresholdT0.toFixed(2)} N</b></div>
+                    <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
+                    <div class="info-footer">
+                        SD: ${stdFz5s.toFixed(2)} N | Ngưỡng T0 (-4 SD): <b>${thresholdT0.toFixed(2)} N</b>
+                    </div>
                 </div>
                 
                 <div class="card danger-border animate">
-                    <h3>Mốc T0 (Bắt đầu chuyển động)</h3>
+                    <h3>Mốc T0 (Bắt đầu)</h3>
                     <div class="value" style="color: var(--danger);">${T0_val !== null ? T0_val.toFixed(4) : "---"}</div>
                     <div class="unit">giây</div>
-                    <div class="info-footer">Thời điểm lực giảm > 2.5% (Duy trì ${windowMs}ms)</div>
+                    <div class="info-footer">Fz tại T0: ${fzAtT0 !== null ? fzAtT0.toFixed(2) + " N" : "---"}</div>
                 </div>
 
                 <div class="card success-border animate">
-                    <h3>Mốc T1 (Lực cực đại)</h3>
-                    <div class="value" style="color: var(--success);">${T1.toFixed(4)}</div>
+                    <h3>Mốc T1 (Phục hồi)</h3>
+                    <div class="value" style="color: var(--success);">${T1_val !== null ? T1_val.toFixed(4) : "---"}</div>
                     <div class="unit">giây</div>
-                    <div class="info-footer">Giá trị Fz Peak: ${maxFz.toFixed(2)} N</div>
+                    <div class="info-footer">Fz tại T1: ${fzAtT1 !== null ? fzAtT1.toFixed(2) + " N" : "---"}</div>
                 </div>
             `;
 
-            // Vẽ biểu đồ với các mốc đã tính
-            drawChart(timeData, fzData, T0_val, T1);
+            drawChart(timeData, fzData, T0_val, T1_val);
 
         } catch (err) {
             console.error("Lỗi trong quá trình xử lý:", err);
@@ -139,12 +142,10 @@ function processFile() {
 function drawChart(labels, data, T0, T1) {
     const ctx = document.getElementById('fzChart').getContext('2d');
     
-    // Reset biểu đồ cũ nếu đã tồn tại
     if (fzChartInstance) {
         fzChartInstance.destroy();
     }
 
-    // Cấu hình các đường kẻ dọc (Annotation) cho T0 và T1
     const annotations = {};
     if (T0 !== null) {
         annotations.lineT0 = {
@@ -156,7 +157,7 @@ function drawChart(labels, data, T0, T1) {
             borderDash: [5, 5],
             label: {
                 display: true,
-                content: 'T0 Onset',
+                content: 'T0 (Onset)',
                 position: 'start',
                 backgroundColor: '#ef4444',
                 color: '#fff',
@@ -164,21 +165,23 @@ function drawChart(labels, data, T0, T1) {
             }
         };
     }
-    annotations.lineT1 = {
-        type: 'line',
-        xMin: T1,
-        xMax: T1,
-        borderColor: '#10b981',
-        borderWidth: 2,
-        label: {
-            display: true,
-            content: 'T1 Peak',
-            position: 'start',
-            backgroundColor: '#10b981',
-            color: '#fff',
-            font: { size: 10 }
-        }
-    };
+    if (T1 !== null) {
+        annotations.lineT1 = {
+            type: 'line',
+            xMin: T1,
+            xMax: T1,
+            borderColor: '#10b981',
+            borderWidth: 2,
+            label: {
+                display: true,
+                content: 'T1 (Recovery)',
+                position: 'start',
+                backgroundColor: '#10b981',
+                color: '#fff',
+                font: { size: 10 }
+            }
+        };
+    }
 
     fzChartInstance = new Chart(ctx, {
         type: 'line',
@@ -205,7 +208,7 @@ function drawChart(labels, data, T0, T1) {
                     grid: { color: '#e2e8f0' }
                 },
                 y: {
-                    title: { display: true, text: 'Lực Fz (Newton)' },
+                    title: { display: true, text: 'Lực Fz (N)' },
                     grid: { color: '#e2e8f0' }
                 }
             },
