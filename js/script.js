@@ -15,9 +15,18 @@ function processFile() {
     reader.onload = function(e) {
         const text = e.target.result;
         const lines = text.split(/\r?\n/);
-        let dataStartIndex = -1;
         
+        let dataStartIndex = -1;
+        let subjectWeight = null;
+        
+        // Quét header để tìm Subject weight và vị trí bắt đầu của dữ liệu
         for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes("Subject weight (kg)")) {
+                const parts = lines[i].split('\t');
+                if (parts.length > 1) {
+                    subjectWeight = parseFloat(parts[1]);
+                }
+            }
             if (lines[i].includes("Time (s)")) {
                 dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
                 break;
@@ -32,7 +41,6 @@ function processFile() {
         let timeData = [];
         let fzData = [];
 
-        // Đọc toàn bộ dữ liệu
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -48,11 +56,10 @@ function processFile() {
 
         if (timeData.length < 2) return;
 
-        // ĐIỀU HƯỚNG TỚI CÔNG THỨC PHÂN TÍCH
         if (analysisMode === 'sts') {
             analyzeSTS(timeData, fzData);
         } else if (analysisMode === 'stw') {
-            analyzeSTW(timeData, fzData);
+            analyzeSTW(timeData, fzData, subjectWeight);
         }
     };
 
@@ -68,7 +75,6 @@ function analyzeSTS(timeData, fzData) {
     const chartWrapper = document.getElementById('chartWrapper');
 
     try {
-        // Nới mốc chặn tìm kiếm lên 15 giây để lấy được dải 14s
         let limitIdx = timeData.findIndex(t => t > 15.0);
         if (limitIdx === -1) limitIdx = timeData.length; 
 
@@ -86,12 +92,12 @@ function analyzeSTS(timeData, fzData) {
         
         let localMax_val = null, localMin_val = null;
         let lMaxFz = null; 
+        let lMaxIdx = -1; 
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
         const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-        // 1. Tìm T0
         for (let i = 0; i < limitIdx - windowSize; i++) {
             let isStable = true;
             for (let j = 0; j < windowSize; j++) {
@@ -100,21 +106,18 @@ function analyzeSTS(timeData, fzData) {
             if (isStable) { T0_val = timeData[i]; T0_idx = i; fzAtT0 = fzData[i]; break; }
         }
 
-        // 2. Tìm T1
         if (T0_idx !== -1) {
             for (let i = T0_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT0) { T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i]; break; }
             }
         }
 
-        // 3. Tìm T2 (Cực đại chính)
         let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
         let maxFz = -Infinity;
         for (let i = searchStartT2; i < limitIdx; i++) {
             if (fzData[i] > maxFz) { maxFz = fzData[i]; T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i]; }
         }
 
-        // 4. Tìm T4 (Cực tiểu chính)
         if (T2_idx !== -1) {
             let minFz = Infinity;
             for (let i = T2_idx; i < limitIdx; i++) {
@@ -122,15 +125,12 @@ function analyzeSTS(timeData, fzData) {
             }
         }
 
-        // 5. Tìm Cực đại phụ và Cực tiểu phụ (trong 0.5s sau T4)
         if (T4_idx !== -1) {
             const maxTimeWindow = timeData[T4_idx] + 0.5; 
             let endWindowIdx = T4_idx;
-            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
-                endWindowIdx++; 
-            }
+            while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { endWindowIdx++; }
 
-            let lMaxIdx = T4_idx;
+            lMaxIdx = T4_idx; 
             lMaxFz = fzData[T4_idx];
             for (let i = T4_idx + 1; i < endWindowIdx; i++) {
                 if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
@@ -144,61 +144,43 @@ function analyzeSTS(timeData, fzData) {
             localMin_val = timeData[lMinIdx];
         }
 
-        // 6. Tìm T3 sử dụng Vùng Tham Chiếu 8s - 14s
         const stableMs = 500; 
         const stableW = Math.ceil((stableMs / 1000) * sampleRate);
-
         let idx8s = timeData.findIndex(t => t >= 8.0);
         let idx14s = timeData.findIndex(t => t >= 14.0);
         if (idx14s === -1) idx14s = timeData.length - 1;
 
         let refStableFz = null;
-
         if (idx8s !== -1 && idx8s < idx14s && (idx14s - idx8s >= stableW)) {
             let minDiff = Infinity;
-            
             for (let i = idx8s; i <= idx14s - stableW; i++) {
                 let maxW = -Infinity, minW = Infinity, sumW = 0;
                 for (let j = 0; j < stableW; j++) {
                     let v = fzData[i + j];
-                    if (v > maxW) maxW = v; 
-                    if (v < minW) minW = v; 
-                    sumW += v;
+                    if (v > maxW) maxW = v; if (v < minW) minW = v; sumW += v;
                 }
-                
-                let diff = maxW - minW;
-                if (diff < minDiff) {
-                    minDiff = diff; 
-                    refStableFz = sumW / stableW; 
+                if ((maxW - minW) < minDiff) {
+                    minDiff = maxW - minW; refStableFz = sumW / stableW; 
                 }
             }
         }
 
-        // Dò ngược từ T4 về T2 để bắt điểm cắt với refStableFz
         if (T2_idx !== -1 && T4_idx !== -1 && refStableFz !== null) {
             for (let i = T4_idx; i >= T2_idx; i--) {
                 if (fzData[i] >= refStableFz) {
-                    T3_idx = i;
-                    T3_val = timeData[i];
-                    fzAtT3 = fzData[i];
-                    break;
+                    T3_idx = i; T3_val = timeData[i]; fzAtT3 = fzData[i]; break;
                 }
             }
         }
 
-        // 7. Tìm T5: Điểm ĐẦU TIÊN chạm lại Fz của T3 tính từ sau T4
-        if (T4_idx !== -1 && fzAtT3 !== null) {
-            for (let i = T4_idx + 1; i < limitIdx; i++) {
+        if (T4_idx !== -1 && fzAtT3 !== null && lMaxIdx !== -1) {
+            for (let i = T4_idx + 1; i <= lMaxIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
-                    T5_val = timeData[i]; 
-                    T5_idx = i; 
-                    fzAtT5 = fzData[i]; 
-                    break; 
+                    T5_val = timeData[i]; T5_idx = i; fzAtT5 = fzData[i]; break; 
                 }
             }
         }
 
-        // HIỂN THỊ KẾT QUẢ RA HTML
         chartWrapper.style.display = 'block'; 
         resultDiv.innerHTML = `
             <div class="card card-full animate">
@@ -248,27 +230,154 @@ function analyzeSTS(timeData, fzData) {
 // ==========================================
 // BÀI TEST 2: SIT TO WALK (STW)
 // ==========================================
-function analyzeSTW(timeData, fzData) {
+function analyzeSTW(timeData, fzData, subjectWeight) {
     const resultDiv = document.getElementById('result');
+    const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
 
     try {
+        let limitIdx = timeData.findIndex(t => t > 15.0);
+        if (limitIdx === -1) limitIdx = timeData.length; 
+
         const fz5s = fzData.filter((_, idx) => timeData[idx] <= 5.0);
         const meanFz5s = jStat.mean(fz5s);
+        const stdFz5s = jStat.stdev(fz5s);
+        const thresholdT0 = meanFz5s - (4 * stdFz5s);
+
+        let T0_val = null, T0_idx = -1, fzAtT0 = null;
+        let T1_val = null, T1_idx = -1, fzAtT1 = null;
+        let T2_val = null, T2_idx = -1, fzAtT2 = null;
+        let T3_val = null, T3_idx = -1, fzAtT3 = null;
+        let T4_val = null, T4_idx = -1, fzAtT4 = null;
+        let T5_val = null, T5_idx = -1, fzAtT5 = null;
+
+        const sampleRate = 1 / (timeData[1] - timeData[0]);
+        const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
+        const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
+
+        // 1. T0
+        for (let i = 0; i < limitIdx - windowSize; i++) {
+            let isStable = true;
+            for (let j = 0; j < windowSize; j++) {
+                if (fzData[i + j] >= thresholdT0) { isStable = false; break; }
+            }
+            if (isStable) { T0_val = timeData[i]; T0_idx = i; fzAtT0 = fzData[i]; break; }
+        }
+
+        // 2. T1
+        if (T0_idx !== -1) {
+            for (let i = T0_idx + 1; i < limitIdx; i++) {
+                if (fzData[i] >= fzAtT0) { T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i]; break; }
+            }
+        }
+
+        // 3. T2 (Cực đại chính)
+        let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
+        let maxFz = -Infinity;
+        for (let i = searchStartT2; i < limitIdx; i++) {
+            if (fzData[i] > maxFz) { maxFz = fzData[i]; T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i]; }
+        }
+
+        // 4. T3: Khi Fz total = Subject weight x 9.81 ngay gần nhất sau T2
+        let refStableFz = null;
+        let refStableLabel = "---";
+        
+        if (subjectWeight !== null && !isNaN(subjectWeight)) {
+            refStableFz = subjectWeight * 9.81; // Đổi từ kg sang Newton
+            refStableLabel = `${refStableFz.toFixed(2)} N (${subjectWeight}kg)`;
+        } else {
+            // Dự phòng nếu file không có Subject weight
+            refStableFz = meanFz5s; 
+            refStableLabel = `${refStableFz.toFixed(2)} N (Dự phòng 5s)`;
+        }
+
+        // Quét ĐI TỚI từ ngay sau T2 để tìm điểm đầu tiên Fz giảm xuống mức Subject Weight
+        if (T2_idx !== -1 && refStableFz !== null) {
+            for (let i = T2_idx + 1; i < limitIdx; i++) {
+                if (fzData[i] <= refStableFz) { // Tụt xuống bằng hoặc thấp hơn đường Subject Weight
+                    T3_idx = i;
+                    T3_val = timeData[i];
+                    fzAtT3 = fzData[i];
+                    break;
+                }
+            }
+        }
+
+        // 5. T5: Khi người đo bước ra khỏi bàn lực (Fz total = 0, bù nhiễu <= 5N)
+        if (T2_idx !== -1) {
+            for (let i = T2_idx; i < timeData.length; i++) {
+                if (fzData[i] <= 5.0) { 
+                    T5_idx = i;
+                    T5_val = timeData[i];
+                    fzAtT5 = fzData[i];
+                    break;
+                }
+            }
+        }
+
+        // 6. T4: Ổn định giữa T3 và T5 (dao động < 5% so với Fz T3 duy trì > 50ms)
+        const window50 = Math.ceil((50 / 1000) * sampleRate);
+        if (T3_idx !== -1 && T5_idx !== -1 && (T5_idx - T3_idx >= window50)) {
+            const allowedDiff = 0.05 * fzAtT3; // 5% của Fz T3
+            
+            for (let i = T3_idx; i <= T5_idx - window50; i++) {
+                let isStable = true;
+                for (let j = 0; j < window50; j++) {
+                    if (Math.abs(fzData[i + j] - fzAtT3) > allowedDiff) {
+                        isStable = false;
+                        break;
+                    }
+                }
+                
+                if (isStable) {
+                    T4_idx = i;
+                    T4_val = timeData[i];
+                    fzAtT4 = fzData[i];
+                    break;
+                }
+            }
+        }
 
         chartWrapper.style.display = 'block'; 
         resultDiv.innerHTML = `
             <div class="card card-full animate">
-                <h3>Chế độ phân tích: Sit-to-Walk (STW)</h3>
-                <p style="color: #64748b; margin-top: 5px;">Hệ thống đã nhận diện dữ liệu lực. Vui lòng cung cấp công thức sinh cơ học để bắt các mốc thời gian của STW.</p>
+                <h3>Baseline STW (0 - 5.0s)</h3>
+                <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
+                <div class="info-footer">Ngưỡng T0: <b>${thresholdT0.toFixed(2)} N</b></div>
+            </div>
+            <div class="card animate" style="border-top: 4px solid #ef4444;">
+                <h3>T0 (Khởi phát)</h3>
+                <div class="value" style="color: #ef4444;">${T0_val !== null ? T0_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">Fz: ${fzAtT0 !== null ? fzAtT0.toFixed(2) : "---"} N</div>
+            </div>
+            <div class="card animate" style="border-top: 4px solid #10b981;">
+                <h3>T1 (Phục hồi)</h3>
+                <div class="value" style="color: #10b981;">${T1_val !== null ? T1_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">Fz: ${fzAtT1 !== null ? fzAtT1.toFixed(2) : "---"} N</div>
+            </div>
+            <div class="card animate" style="border-top: 4px solid #f59e0b;">
+                <h3>T2 (Cực đại)</h3>
+                <div class="value" style="color: #f59e0b;">${T2_val !== null ? T2_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">Fz Peak: ${fzAtT2 !== null ? fzAtT2.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #3b82f6;">
-                <h3>Baseline STW (0-5s)</h3>
-                <div class="value" style="color: #3b82f6;">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
+                <h3>T3 (Phân tách)</h3>
+                <div class="value" style="color: #3b82f6;">${T3_val !== null ? T3_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">Ref: ${refStableLabel}</div>
+            </div>
+            <div class="card animate" style="border-top: 4px solid #8b5cf6;">
+                <h3>T4 (Bắt đầu ổn định)</h3>
+                <div class="value" style="color: #8b5cf6;">${T4_val !== null ? T4_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">${fzAtT4 !== null ? `Fz: ${fzAtT4.toFixed(2)} N` : "Dao động < 5%"}</div>
+            </div>
+            <div class="card animate" style="border-top: 4px solid #64748b;">
+                <h3>T5 (Rời bàn lực)</h3>
+                <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
+                <div class="info-footer">${fzAtT5 !== null ? `Fz ≈ 0 N` : "Không tìm thấy"}</div>
             </div>
         `;
 
-        drawChart(timeData, fzData, null, null, null, null, null, null, null, null);
+        drawChart(timeData, fzData, T0_val, T1_val, T2_val, T3_val, T4_val, T5_val, null, null);
 
     } catch (err) {
         console.error(err); alert("Lỗi phân tích STW: " + err.message);
