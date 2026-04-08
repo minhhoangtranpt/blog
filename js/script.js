@@ -124,7 +124,7 @@ function analyzeSTS(timeData, fzData) {
 
         // 5. TÌM CỰC ĐẠI PHỤ VÀ CỰC TIỂU PHỤ (Trước T3 để lấy mức trần)
         if (T4_idx !== -1) {
-            const maxTimeWindow = timeData[T4_idx] + 1.0; 
+            const maxTimeWindow = timeData[T4_idx] + 0.3; 
             let endWindowIdx = T4_idx;
             while (endWindowIdx < limitIdx && timeData[endWindowIdx] <= maxTimeWindow) { 
                 endWindowIdx++; 
@@ -133,14 +133,14 @@ function analyzeSTS(timeData, fzData) {
             // Cực đại cục bộ trong 1s sau T4
             let lMaxIdx = T4_idx;
             lMaxFz = fzData[T4_idx];
-            for (let i = T4_idx + 1; i < endWindowIdx; i++) {
+            for (let i = T4_idx + 0.3; i < endWindowIdx; i++) {
                 if (fzData[i] > lMaxFz) { lMaxFz = fzData[i]; lMaxIdx = i; }
             }
             localMax_val = timeData[lMaxIdx];
 
             // Cực tiểu cục bộ từ sau cực đại cục bộ
             let lMinIdx = lMaxIdx, lMinFz = fzData[lMaxIdx];
-            for (let i = lMaxIdx + 1; i < endWindowIdx; i++) {
+            for (let i = lMaxIdx + 0.3; i < endWindowIdx; i++) {
                 if (fzData[i] < lMinFz) { lMinFz = fzData[i]; lMinIdx = i; }
             }
             localMin_val = timeData[lMinIdx];
