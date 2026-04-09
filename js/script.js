@@ -153,14 +153,14 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
 
         const stableMs = 500; 
         const stableW = Math.ceil((stableMs / 1000) * sampleRate);
-        let idx8s = timeData.findIndex(t => t >= 8.0);
+        let idx9s = timeData.findIndex(t => t >= 9.0);
         let idx14s = timeData.findIndex(t => t >= 14.0);
         if (idx14s === -1) idx14s = timeData.length - 1;
 
         let refStableFz = null;
-        if (idx8s !== -1 && idx8s < idx14s && (idx14s - idx8s >= stableW)) {
+        if (idx9s !== -1 && idx9s < idx14s && (idx14s - idx9s >= stableW)) {
             let minDiff = Infinity;
-            for (let i = idx8s; i <= idx14s - stableW; i++) {
+            for (let i = idx9s; i <= idx14s - stableW; i++) {
                 let maxW = -Infinity, minW = Infinity, sumW = 0;
                 for (let j = 0; j < stableW; j++) {
                     let v = fzData[i + j];
@@ -180,8 +180,9 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
             }
         }
 
-        if (T4_idx !== -1 && fzAtT3 !== null && lMaxIdx !== -1) {
-            for (let i = T4_idx + 1; i <= lMaxIdx; i++) {
+        // [MỚI CẬP NHẬT] T5: Điểm chạm hoặc vượt qua Fz T3, lấy điểm gần ngay sau T4 nhất
+        if (T4_idx !== -1 && fzAtT3 !== null) {
+            for (let i = T4_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
                     T5_val = timeData[i]; T5_idx = i; fzAtT5 = fzData[i]; break; 
                 }
@@ -213,7 +214,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
             <div class="card animate" style="border-top: 4px solid #3b82f6;">
                 <h3>T3 (Ổn định 1)</h3>
                 <div class="value" style="color: #3b82f6;">${T3_val !== null ? T3_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz Ref (8-14s): ${refStableFz !== null ? refStableFz.toFixed(2) : "---"} N</div>
+                <div class="info-footer">Fz Ref (9-14s): ${refStableFz !== null ? refStableFz.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
                 <h3>T4 (Cực tiểu)</h3>
