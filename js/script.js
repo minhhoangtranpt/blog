@@ -1,15 +1,54 @@
 let fzChartInstance = null;
 
-function processFile() {
+// CÁC BIẾN QUẢN LÝ BATCH (Xử lý hàng loạt)
+let batchFiles = [];
+let currentFileIndex = 0;
+let batchResults = []; 
+
+function processFiles() {
     const fileInput = document.getElementById('fileInput');
-    const analysisMode = document.getElementById('analysisMode').value;
-    
     if (!fileInput.files.length) {
-        alert("Vui lòng chọn file .txt!");
+        alert("Vui lòng chọn ít nhất 1 file .txt!");
         return;
     }
 
-    const file = fileInput.files[0];
+    batchFiles = Array.from(fileInput.files);
+    currentFileIndex = 0;
+    batchResults = new Array(batchFiles.length).fill(null); // Tạo mảng trống chờ lưu kết quả
+
+    document.getElementById('batchControls').style.display = 'flex';
+    updateBatchUI();
+    readAndAnalyzeCurrentFile();
+}
+
+function updateBatchUI() {
+    const progressText = `File ${currentFileIndex + 1}/${batchFiles.length}: ${batchFiles[currentFileIndex].name}`;
+    document.getElementById('fileProgress').innerText = progressText;
+    document.getElementById('prevBtn').disabled = currentFileIndex === 0;
+    document.getElementById('prevBtn').style.opacity = currentFileIndex === 0 ? "0.5" : "1";
+    document.getElementById('nextBtn').disabled = currentFileIndex === batchFiles.length - 1;
+    document.getElementById('nextBtn').style.opacity = currentFileIndex === batchFiles.length - 1 ? "0.5" : "1";
+}
+
+function prevFile() {
+    if (currentFileIndex > 0) {
+        currentFileIndex--;
+        updateBatchUI();
+        readAndAnalyzeCurrentFile();
+    }
+}
+
+function nextFile() {
+    if (currentFileIndex < batchFiles.length - 1) {
+        currentFileIndex++;
+        updateBatchUI();
+        readAndAnalyzeCurrentFile();
+    }
+}
+
+function readAndAnalyzeCurrentFile() {
+    const file = batchFiles[currentFileIndex];
+    const analysisMode = document.getElementById('analysisMode').value;
     const reader = new FileReader();
 
     reader.onload = function(e) {
@@ -19,13 +58,10 @@ function processFile() {
         let dataStartIndex = -1;
         let subjectWeight = null;
         
-        // Quét header để tìm Subject weight và vị trí bắt đầu của dữ liệu
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes("Subject weight (kg)")) {
                 const parts = lines[i].split('\t');
-                if (parts.length > 1) {
-                    subjectWeight = parseFloat(parts[1]);
-                }
+                if (parts.length > 1) { subjectWeight = parseFloat(parts[1]); }
             }
             if (lines[i].includes("Time (s)")) {
                 dataStartIndex = (lines[i+1] && lines[i+1].includes("TOTAL")) ? i + 2 : i + 1;
@@ -34,24 +70,20 @@ function processFile() {
         }
 
         if (dataStartIndex === -1) {
-            alert("Lỗi: Không tìm thấy định dạng dữ liệu chuẩn.");
+            alert(`Lỗi: Không tìm thấy định dạng chuẩn trong file ${file.name}`);
             return;
         }
 
-        let timeData = [];
-        let fzData = [];
-        let fzAData = []; // Lưu lực bàn A
-        let fzBData = []; // Lưu lực bàn B
-
+        let timeData = [], fzData = [], fzAData = [], fzBData = [];
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             const cols = line.split('\t');
             
             const t = parseFloat(cols[0]);
-            const fz = parseFloat(cols[1]); // Fz Total
-            const fzA = parseFloat(cols[14]); // Fz Forceplate A
-            const fzB = parseFloat(cols[23]); // Fz Forceplate B
+            const fz = parseFloat(cols[1]); 
+            const fzA = parseFloat(cols[14]); 
+            const fzB = parseFloat(cols[23]); 
 
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t);
@@ -64,19 +96,47 @@ function processFile() {
         if (timeData.length < 2) return;
 
         if (analysisMode === 'sts') {
-            analyzeSTS(timeData, fzData, fzAData, fzBData);
+            analyzeSTS(timeData, fzData, fzAData, fzBData, file.name);
         } else if (analysisMode === 'stw') {
-            analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight);
+            analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, file.name);
         }
     };
-
     reader.readAsText(file);
+}
+
+// ==========================================
+// TÍNH NĂNG XUẤT TOÀN BỘ KẾT QUẢ
+// ==========================================
+function exportBatchResults() {
+    let unanalyzedCount = batchResults.filter(res => res === null).length;
+    if (unanalyzedCount > 0) {
+        let confirmExport = confirm(`Bạn có ${unanalyzedCount} file chưa được xem/tính toán. Nút Next sẽ tự động tính toán. Bạn có muốn tải xuống các file đã phân tích không?`);
+        if (!confirmExport) return;
+    }
+
+    // Header của file xuất ra, phân tách bằng dấu Tab (\t) để copy thẳng vào Excel/SPSS
+    let fileContent = "File_Name\tMode\tBaseline_N\tT0_s\tT1_s\tT2_s\tT3_s\tT4_s\tT5_s\n";
+
+    batchResults.forEach(res => {
+        if (res) {
+            fileContent += `${res.File}\t${res.Mode}\t${res.Baseline}\t${res.T0}\t${res.T1}\t${res.T2}\t${res.T3}\t${res.T4}\t${res.T5}\n`;
+        }
+    });
+
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "TwinPlates_Batch_Results.txt");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // ==========================================
 // BÀI TEST 1: SIT TO STAND (STS)
 // ==========================================
-function analyzeSTS(timeData, fzData, fzAData, fzBData) {
+function analyzeSTS(timeData, fzData, fzAData, fzBData, fileName) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -98,8 +158,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
         let T5_val = null, T5_idx = -1, fzAtT5 = null;
         
         let localMax_val = null, localMin_val = null;
-        let lMaxFz = null; 
-        let lMaxIdx = -1; 
+        let lMaxFz = null, lMaxIdx = -1; 
 
         const sampleRate = 1 / (timeData[1] - timeData[0]);
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
@@ -153,14 +212,16 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
 
         const stableMs = 500; 
         const stableW = Math.ceil((stableMs / 1000) * sampleRate);
-        let idx9s = timeData.findIndex(t => t >= 9.0);
+        
+        // SỬA LỖI T3: Dùng vùng tham chiếu từ 8s đến 14s
+        let idx8s = timeData.findIndex(t => t >= 8.0);
         let idx14s = timeData.findIndex(t => t >= 14.0);
         if (idx14s === -1) idx14s = timeData.length - 1;
 
         let refStableFz = null;
-        if (idx9s !== -1 && idx9s < idx14s && (idx14s - idx9s >= stableW)) {
+        if (idx8s !== -1 && idx8s < idx14s && (idx14s - idx8s >= stableW)) {
             let minDiff = Infinity;
-            for (let i = idx9s; i <= idx14s - stableW; i++) {
+            for (let i = idx8s; i <= idx14s - stableW; i++) {
                 let maxW = -Infinity, minW = Infinity, sumW = 0;
                 for (let j = 0; j < stableW; j++) {
                     let v = fzData[i + j];
@@ -180,7 +241,6 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
             }
         }
 
-        // [MỚI CẬP NHẬT] T5: Điểm chạm hoặc vượt qua Fz T3, lấy điểm gần ngay sau T4 nhất
         if (T4_idx !== -1 && fzAtT3 !== null) {
             for (let i = T4_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT3) { 
@@ -189,42 +249,49 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
             }
         }
 
+        // LƯU KẾT QUẢ VÀO MẢNG BATCH
+        batchResults[currentFileIndex] = {
+            File: fileName,
+            Mode: 'STS',
+            Baseline: meanFz5s.toFixed(2),
+            T0: T0_val !== null ? T0_val.toFixed(4) : "",
+            T1: T1_val !== null ? T1_val.toFixed(4) : "",
+            T2: T2_val !== null ? T2_val.toFixed(4) : "",
+            T3: T3_val !== null ? T3_val.toFixed(4) : "",
+            T4: T4_val !== null ? T4_val.toFixed(4) : "",
+            T5: T5_val !== null ? T5_val.toFixed(4) : ""
+        };
+
         chartWrapper.style.display = 'block'; 
         resultDiv.innerHTML = `
             <div class="card card-full animate">
                 <h3>Baseline STS (0 - 5.0s)</h3>
                 <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
-                <div class="info-footer">Ngưỡng T0: <b>${thresholdT0.toFixed(2)} N</b></div>
             </div>
             <div class="card animate" style="border-top: 4px solid #ef4444;">
                 <h3>T0 (Khởi phát)</h3>
                 <div class="value" style="color: #ef4444;">${T0_val !== null ? T0_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz: ${fzAtT0 !== null ? fzAtT0.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #10b981;">
                 <h3>T1 (Phục hồi)</h3>
                 <div class="value" style="color: #10b981;">${T1_val !== null ? T1_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz: ${fzAtT1 !== null ? fzAtT1.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #f59e0b;">
                 <h3>T2 (Cực đại)</h3>
                 <div class="value" style="color: #f59e0b;">${T2_val !== null ? T2_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz Peak: ${fzAtT2 !== null ? fzAtT2.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #3b82f6;">
                 <h3>T3 (Ổn định 1)</h3>
                 <div class="value" style="color: #3b82f6;">${T3_val !== null ? T3_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz Ref (9-14s): ${refStableFz !== null ? refStableFz.toFixed(2) : "---"} N</div>
+                <div class="info-footer">Ref (8-14s): ${refStableFz !== null ? refStableFz.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
                 <h3>T4 (Cực tiểu)</h3>
                 <div class="value" style="color: #8b5cf6;">${T4_val !== null ? T4_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz Min: ${fzAtT4 !== null ? fzAtT4.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #64748b;">
                 <h3>T5 (Chạm mức T3)</h3>
                 <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T5_val !== null ? `Fz: ${fzAtT5.toFixed(2)} N` : "Không tìm thấy sau T4"}</div>
             </div>
         `;
         
@@ -238,7 +305,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData) {
 // ==========================================
 // BÀI TEST 2: SIT TO WALK (STW)
 // ==========================================
-function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
+function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, fileName) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -263,7 +330,6 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
         const windowMs = parseInt(windowMsInput ? windowMsInput.value : 20) || 20;
         const windowSize = Math.ceil((windowMs / 1000) * sampleRate);
 
-        // 1. T0
         for (let i = 0; i < limitIdx - windowSize; i++) {
             let isStable = true;
             for (let j = 0; j < windowSize; j++) {
@@ -272,124 +338,107 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight) {
             if (isStable) { T0_val = timeData[i]; T0_idx = i; fzAtT0 = fzData[i]; break; }
         }
 
-        // 2. T1
         if (T0_idx !== -1) {
             for (let i = T0_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] >= fzAtT0) { T1_val = timeData[i]; T1_idx = i; fzAtT1 = fzData[i]; break; }
             }
         }
 
-        // 3. T2 (Cực đại chính)
         let searchStartT2 = (T1_idx !== -1) ? T1_idx : ((T0_idx !== -1) ? T0_idx : 0);
         let maxFz = -Infinity;
         for (let i = searchStartT2; i < limitIdx; i++) {
             if (fzData[i] > maxFz) { maxFz = fzData[i]; T2_val = timeData[i]; T2_idx = i; fzAtT2 = fzData[i]; }
         }
 
-        // 4. T3: Khi Fz total = Subject weight x 9.81 ngay gần nhất sau T2
         let refStableFz = null;
-        let refStableLabel = "---";
-        
         if (subjectWeight !== null && !isNaN(subjectWeight)) {
             refStableFz = subjectWeight * 9.81; 
-            refStableLabel = `${refStableFz.toFixed(2)} N (${subjectWeight}kg)`;
         } else {
             refStableFz = meanFz5s; 
-            refStableLabel = `${refStableFz.toFixed(2)} N (Dự phòng 5s)`;
         }
 
         if (T2_idx !== -1 && refStableFz !== null) {
             for (let i = T2_idx + 1; i < limitIdx; i++) {
                 if (fzData[i] <= refStableFz) { 
-                    T3_idx = i;
-                    T3_val = timeData[i];
-                    fzAtT3 = fzData[i];
-                    break;
+                    T3_idx = i; T3_val = timeData[i]; fzAtT3 = fzData[i]; break;
                 }
             }
         }
 
-        // 5. T4: TÌM T4 TRƯỚC T5
-        // Fz của 1 bên forceplate bất kỳ (A hoặc B) < 5% Subject weight duy trì trong 50ms
         const window50 = Math.ceil((50 / 1000) * sampleRate);
-        let footOffAtT4 = null; // Ghi nhớ chân nào nhấc ở T4 ('A' hoặc 'B')
+        let footOffAtT4 = null; 
 
         if (T3_idx !== -1 && refStableFz !== null) {
             const thresholdT4 = 0.05 * refStableFz; 
             const searchEnd = timeData.length; 
 
             for (let i = T3_idx; i <= searchEnd - window50; i++) {
-                let isStableA = true;
-                let isStableB = true;
-                
+                let isStableA = true, isStableB = true;
                 for (let j = 0; j < window50; j++) {
                     if (fzAData[i + j] >= thresholdT4) isStableA = false;
                     if (fzBData[i + j] >= thresholdT4) isStableB = false;
-                    
                     if (!isStableA && !isStableB) break;
                 }
                 
                 if (isStableA || isStableB) {
-                    T4_idx = i;
-                    T4_val = timeData[i];
-                    fzAtT4 = fzData[i]; 
+                    T4_idx = i; T4_val = timeData[i]; fzAtT4 = fzData[i]; 
                     footOffAtT4 = isStableA ? 'A' : 'B';
                     break;
                 }
             }
         }
 
-        // 6. T5: CHÂN CÒN LẠI rời bàn lực (Fz chân còn lại <= 5N)
         if (T4_idx !== -1 && footOffAtT4 !== null) {
             for (let i = T4_idx; i < timeData.length; i++) {
-                // Xác định lực của chân chưa nhấc ở T4
                 let fzRemainingFoot = (footOffAtT4 === 'A') ? fzBData[i] : fzAData[i];
-                
                 if (fzRemainingFoot <= 5.0) { 
-                    T5_idx = i;
-                    T5_val = timeData[i];
-                    fzAtT5 = fzData[i]; // Lấy giá trị Fz Total trên biểu đồ chính
-                    break;
+                    T5_idx = i; T5_val = timeData[i]; fzAtT5 = fzData[i]; break;
                 }
             }
         }
+
+        // LƯU KẾT QUẢ VÀO MẢNG BATCH
+        batchResults[currentFileIndex] = {
+            File: fileName,
+            Mode: 'STW',
+            Baseline: meanFz5s.toFixed(2),
+            T0: T0_val !== null ? T0_val.toFixed(4) : "",
+            T1: T1_val !== null ? T1_val.toFixed(4) : "",
+            T2: T2_val !== null ? T2_val.toFixed(4) : "",
+            T3: T3_val !== null ? T3_val.toFixed(4) : "",
+            T4: T4_val !== null ? T4_val.toFixed(4) : "",
+            T5: T5_val !== null ? T5_val.toFixed(4) : ""
+        };
 
         chartWrapper.style.display = 'block'; 
         resultDiv.innerHTML = `
             <div class="card card-full animate">
                 <h3>Baseline STW (0 - 5.0s)</h3>
                 <div class="value">${meanFz5s.toFixed(2)}<span class="unit">N</span></div>
-                <div class="info-footer">Ngưỡng T0: <b>${thresholdT0.toFixed(2)} N</b></div>
             </div>
             <div class="card animate" style="border-top: 4px solid #ef4444;">
                 <h3>T0 (Khởi phát)</h3>
                 <div class="value" style="color: #ef4444;">${T0_val !== null ? T0_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz: ${fzAtT0 !== null ? fzAtT0.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #10b981;">
                 <h3>T1 (Phục hồi)</h3>
                 <div class="value" style="color: #10b981;">${T1_val !== null ? T1_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz: ${fzAtT1 !== null ? fzAtT1.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #f59e0b;">
                 <h3>T2 (Cực đại)</h3>
                 <div class="value" style="color: #f59e0b;">${T2_val !== null ? T2_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Fz Peak: ${fzAtT2 !== null ? fzAtT2.toFixed(2) : "---"} N</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #3b82f6;">
                 <h3>T3 (Phân tách)</h3>
                 <div class="value" style="color: #3b82f6;">${T3_val !== null ? T3_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">Ref: ${refStableLabel}</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #8b5cf6;">
                 <h3>T4 (Nhấc 1 chân)</h3>
                 <div class="value" style="color: #8b5cf6;">${T4_val !== null ? T4_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T4_val !== null ? `Nhấc chân ${footOffAtT4}` : "Không thấy FzA/B < 5%"}</div>
             </div>
             <div class="card animate" style="border-top: 4px solid #64748b;">
                 <h3>T5 (Rời bàn lực)</h3>
                 <div class="value" style="color: #64748b;">${T5_val !== null ? T5_val.toFixed(4) : "---"}</div>
-                <div class="info-footer">${T5_val !== null ? `Chân ${footOffAtT4 === 'A' ? 'B' : 'A'} <= 5N` : "Không tìm thấy"}</div>
             </div>
         `;
 
@@ -448,35 +497,9 @@ function drawChart(labels, dataTotal, dataA, dataB, T0, T1, T2, T3, T4, T5, lMax
         data: {
             labels: labels,
             datasets: [
-                { 
-                    label: 'Fz Total (N)', 
-                    data: dataTotal, 
-                    borderColor: '#2563eb', 
-                    borderWidth: 1.5, 
-                    pointRadius: 0, 
-                    fill: false, 
-                    tension: 0.1 
-                },
-                { 
-                    label: 'Fz Forceplate A (N)', 
-                    data: dataA, 
-                    borderColor: '#ef4444', 
-                    borderWidth: 1.2, 
-                    borderDash: [5, 5], 
-                    pointRadius: 0, 
-                    fill: false, 
-                    tension: 0.1 
-                },
-                { 
-                    label: 'Fz Forceplate B (N)', 
-                    data: dataB, 
-                    borderColor: '#10b981', 
-                    borderWidth: 1.2, 
-                    borderDash: [5, 5], 
-                    pointRadius: 0, 
-                    fill: false, 
-                    tension: 0.1 
-                }
+                { label: 'Fz Total (N)', data: dataTotal, borderColor: '#2563eb', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.1 },
+                { label: 'Fz Forceplate A (N)', data: dataA, borderColor: '#ef4444', borderWidth: 1.2, borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.1 },
+                { label: 'Fz Forceplate B (N)', data: dataB, borderColor: '#10b981', borderWidth: 1.2, borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.1 }
             ]
         },
         options: {
