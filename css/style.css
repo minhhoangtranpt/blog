@@ -40,10 +40,12 @@ header {
     margin-bottom: 25px;
 }
 
+/* Đã cập nhật flex-wrap để không bị dồn cục khi màn hình nhỏ */
 .config-group {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    flex-wrap: wrap; 
+    gap: 20px;
     margin-bottom: 20px;
 }
 
@@ -51,9 +53,20 @@ header {
     display: block;
     font-size: 0.8rem;
     color: var(--text-sub);
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     text-align: left;
     font-weight: 600;
+}
+
+/* Thêm định dạng cho ô chọn file để gọn gàng hơn khi tải nhiều file */
+input[type="file"] {
+    max-width: 250px;
+    padding: 6px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #f1f5f9;
 }
 
 input[type="number"] {
@@ -61,27 +74,41 @@ input[type="number"] {
     border: 1px solid var(--border);
     border-radius: 6px;
     width: 80px;
+    outline: none;
+}
+
+input[type="number"]:focus {
+    border-color: var(--primary);
 }
 
 button {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 12px 30px;
+    padding: 10px 24px;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s ease;
 }
 
-button:hover {
+button:hover:not(:disabled) {
     background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+/* THÊM MỚI: Trạng thái khi nút bị vô hiệu hóa (ví dụ: Nút "Trước" ở file đầu tiên) */
+button:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+    transform: none !important;
 }
 
 .result-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+    /* Giảm minmax xuống 250px để các thẻ mốc thời gian xếp vừa vặn hơn */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
     margin-bottom: 25px;
 }
 
@@ -90,9 +117,17 @@ button:hover {
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
 }
 
-.card-full { grid-column: 1 / -1; }
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card-full { 
+    grid-column: 1 / -1; 
+}
 
 .card h3 {
     margin: 0 0 10px 0;
@@ -125,14 +160,30 @@ button:hover {
 .success-border { border-top: 4px solid var(--success); }
 
 .chart-container {
-    height: 450px;
+    height: auto;
+    padding: 20px;
 }
 
 .animate {
-    animation: fadeIn 0.5s ease forwards;
+    animation: fadeIn 0.4s ease forwards;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* THÊM MỚI: Responsive cho thanh điều hướng Batch file */
+@media (max-width: 600px) {
+    #batchControls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    #batchControls > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+    #batchControls button {
+        width: 100%;
+    }
 }
