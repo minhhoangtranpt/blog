@@ -25,7 +25,7 @@
         <div class="config-group">
             <div class="input-item">
                 <label>Loại bài Test</label>
-                <select id="analysisMode" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit; font-weight: 600; color: #1e293b;">
+                <select id="analysisMode" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-weight: 600; color: #1e293b;">
                     <option value="sts">STS (Sit to Stand)</option>
                     <option value="stw">STW (Sit to Walk)</option>
                 </select>
@@ -61,6 +61,21 @@
             <h3 style="margin: 0; color: #64748b; font-size: 0.9rem; text-transform: uppercase;">Biểu đồ lực Fz Total</h3>
             <button onclick="resetChartZoom()" style="padding: 6px 15px; font-size: 0.8rem; background: #64748b; border-radius: 6px; color: white; border: none; cursor: pointer;">🔄 Khôi phục Zoom</button>
         </div>
+        
+        <div style="margin-bottom: 15px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #94a3b8; display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <label style="font-weight: 600; font-size: 0.85rem; color: #334155;">🛠 Sửa mốc thủ công:</label>
+            <select id="editMarkerSelect" style="padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.85rem; outline: none; cursor: pointer;">
+                <option value="T0">T0 (Khởi phát)</option>
+                <option value="T1">T1 (Phục hồi)</option>
+                <option value="T2">T2 (Cực đại)</option>
+                <option value="T3">T3 (Ổn định / Phân tách)</option>
+                <option value="T4">T4 (Cực tiểu / Nhấc chân)</option>
+                <option value="T5">T5 (Chạm mức / Rời bàn)</option>
+            </select>
+            <button id="editModeBtn" onclick="toggleEditMode()" style="background: #eab308; color: #1e293b; padding: 6px 15px; font-size: 0.85rem; border-radius: 6px;">Bật chế độ sửa</button>
+            <span id="editStatus" style="font-size: 0.85rem; color: #ef4444; font-weight: 600; display: none;">🟢 Đang bật: Nhấp vào đồ thị để di chuyển mốc đã chọn!</span>
+        </div>
+
         <div style="position: relative; height: 400px; width: 100%;">
             <canvas id="fzChart"></canvas>
         </div>
