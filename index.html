@@ -6,7 +6,6 @@
     <title>TwinPlates Analyzer - UMP</title>
     
     <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.2/dist/jstat.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script> 
@@ -36,15 +35,26 @@
                 <input type="number" id="windowMs" value="20" min="1" max="500">
             </div>
             <div class="input-item">
-                <label>Chọn tệp .txt</label>
-                <input type="file" id="fileInput" accept=".txt">
+                <label>Chọn các tệp .txt</label>
+                <input type="file" id="fileInput" accept=".txt" multiple>
             </div>
         </div>
-        <button onclick="processFile()">Tính toán & Vẽ biểu đồ</button>
+        
+        <div style="display: flex; gap: 10px;">
+            <button onclick="processFiles()" style="flex: 1;">Tính toán dữ liệu</button>
+        </div>
+
+        <div id="batchControls" style="display: none; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="prevBtn" onclick="prevFile()" style="padding: 8px 12px; background: #64748b;">⬅️ Trước</button>
+                <span id="fileProgress" style="font-weight: 600; color: #334155; font-size: 0.9rem;">0 / 0</span>
+                <button id="nextBtn" onclick="nextFile()" style="padding: 8px 12px; background: #64748b;">Sau ➡️</button>
+            </div>
+            <button onclick="exportBatchResults()" style="background: #10b981; padding: 8px 16px;">⬇️ Tải file kết quả tổng</button>
+        </div>
     </div>
 
-    <div id="result" class="result-grid">
-        </div>
+    <div id="result" class="result-grid"></div>
 
     <div class="chart-container card animate" style="display: none; height: auto;" id="chartWrapper">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
