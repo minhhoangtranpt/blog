@@ -213,20 +213,22 @@ function exportBatchResults() {
 }
 
 // ==========================================
-// CẬP NHẬT TÍNH TOÁN COP (Lấy trị tuyệt đối phần Âm)
+// CẬP NHẬT TÍNH TOÁN COP (Lấy trị tuyệt đối cho cả Phải/Trước)
 // ==========================================
 function calcAmpDetails(arr, start, end) {
-    if (start >= end) return { total: "", max: "", min: "", absMin: "" };
+    if (start >= end) return { total: "", max: "", min: "", absMax: "", absMin: "" };
     const slice = arr.slice(start, end + 1).filter(v => !isNaN(v) && v !== null);
-    if (slice.length === 0) return { total: "", max: "", min: "", absMin: "" };
+    if (slice.length === 0) return { total: "", max: "", min: "", absMax: "", absMin: "" };
     
-    const maxVal = Math.max(...slice); // Phải (x dương) / Trước (y dương)
-    const minVal = Math.min(...slice); // Trái (x âm) / Sau (y âm)
+    const maxVal = Math.max(...slice); // Cực đại (tương ứng với Phải / Trước)
+    const minVal = Math.min(...slice); // Cực tiểu (tương ứng với Trái / Sau)
+    
     return {
         total: (maxVal - minVal).toFixed(4),
         max: maxVal.toFixed(4),
         min: minVal.toFixed(4),
-        absMin: Math.abs(minVal).toFixed(4) // Lấy trị tuyệt đối cho hướng Trái/Sau
+        absMax: Math.abs(maxVal).toFixed(4), // Đã cập nhật: Lấy trị tuyệt đối
+        absMin: Math.abs(minVal).toFixed(4)  // Đã cập nhật: Lấy trị tuyệt đối
     };
 }
 
@@ -361,7 +363,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, copData, fileName, fileD
     let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
     let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
 
-    // Gán giá trị absMin (trị tuyệt đối) cho khoảng cách lệch về phía Trái (Left) và Sau (Back)
+    // Sử dụng absMax cho Phải/Trước và absMin cho Trái/Sau
     batchResults[currentFileIndex] = {
         File: fileName, FileDesc: fileDescription, Mode: 'STS', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
@@ -372,12 +374,12 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, copData, fileName, fileD
         T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
         Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
         Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
-        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.absMin,
-        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.absMin,
-        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.absMin,
-        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.absMin,
-        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.absMin,
-        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.absMin,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.absMax, Amp_COPx_Left_Tot: copxTot_amp.absMin,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.absMax, Amp_COPy_Back_Tot: copyTot_amp.absMin,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.absMax, Amp_COPx_Left_A: copxA_amp.absMin,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.absMax, Amp_COPy_Back_A: copyA_amp.absMin,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.absMax, Amp_COPx_Left_B: copxB_amp.absMin,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.absMax, Amp_COPy_Back_B: copyB_amp.absMin,
         Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
@@ -518,7 +520,6 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, 
     let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
     let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
 
-    // Gán giá trị absMin (trị tuyệt đối) cho khoảng cách lệch về phía Trái (Left) và Sau (Back)
     batchResults[currentFileIndex] = {
         File: fileName, FileDesc: fileDescription, Mode: 'STW', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
@@ -529,12 +530,12 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, 
         T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
         Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
         Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
-        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.absMin,
-        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.absMin,
-        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.absMin,
-        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.absMin,
-        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.absMin,
-        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.absMin,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.absMax, Amp_COPx_Left_Tot: copxTot_amp.absMin,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.absMax, Amp_COPy_Back_Tot: copyTot_amp.absMin,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.absMax, Amp_COPx_Left_A: copxA_amp.absMin,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.absMax, Amp_COPy_Back_A: copyA_amp.absMin,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.absMax, Amp_COPx_Left_B: copxB_amp.absMin,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.absMax, Amp_COPy_Back_B: copyB_amp.absMin,
         Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
