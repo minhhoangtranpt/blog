@@ -97,7 +97,6 @@ function readAndAnalyzeCurrentFile() {
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t); fzData.push(fz); fzAData.push(isNaN(fzA) ? 0 : fzA); fzBData.push(isNaN(fzB) ? 0 : fzB);
                 
-                // Giữ nguyên NaN để lúc nhấc chân không bị làm sai lệch biên độ
                 copxTot.push(parseFloat(cols[COL_COPX_TOT]));
                 copyTot.push(parseFloat(cols[COL_COPY_TOT]));
                 copxA.push(parseFloat(cols[COL_COPX_A]));
@@ -214,24 +213,23 @@ function exportBatchResults() {
 }
 
 // ==========================================
-// KINH NGIEM TINH TOAN COP
+// CẬP NHẬT TÍNH TOÁN COP (Lấy trị tuyệt đối phần Âm)
 // ==========================================
-// Hàm tính chi tiết các biên độ (Trái/Phải/Trước/Sau), bỏ qua các giá trị NaN khi nhấc chân
 function calcAmpDetails(arr, start, end) {
-    if (start >= end) return { total: "", max: "", min: "" };
+    if (start >= end) return { total: "", max: "", min: "", absMin: "" };
     const slice = arr.slice(start, end + 1).filter(v => !isNaN(v) && v !== null);
-    if (slice.length === 0) return { total: "", max: "", min: "" };
+    if (slice.length === 0) return { total: "", max: "", min: "", absMin: "" };
     
     const maxVal = Math.max(...slice); // Phải (x dương) / Trước (y dương)
     const minVal = Math.min(...slice); // Trái (x âm) / Sau (y âm)
     return {
         total: (maxVal - minVal).toFixed(4),
         max: maxVal.toFixed(4),
-        min: minVal.toFixed(4)
+        min: minVal.toFixed(4),
+        absMin: Math.abs(minVal).toFixed(4) // Lấy trị tuyệt đối cho hướng Trái/Sau
     };
 }
 
-// Hàm tính quãng đường, bỏ qua các khoảng bị NaN
 function calcPathLen(arrX, arrY, start, end) {
     if (start >= end) return "";
     let path = 0;
@@ -363,6 +361,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, copData, fileName, fileD
     let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
     let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
 
+    // Gán giá trị absMin (trị tuyệt đối) cho khoảng cách lệch về phía Trái (Left) và Sau (Back)
     batchResults[currentFileIndex] = {
         File: fileName, FileDesc: fileDescription, Mode: 'STS', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
@@ -373,12 +372,12 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, copData, fileName, fileD
         T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
         Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
         Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
-        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.min,
-        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.min,
-        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.min,
-        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.min,
-        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.min,
-        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.min,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.absMin,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.absMin,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.absMin,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.absMin,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.absMin,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.absMin,
         Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
@@ -519,6 +518,7 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, 
     let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
     let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
 
+    // Gán giá trị absMin (trị tuyệt đối) cho khoảng cách lệch về phía Trái (Left) và Sau (Back)
     batchResults[currentFileIndex] = {
         File: fileName, FileDesc: fileDescription, Mode: 'STW', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
@@ -529,12 +529,12 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, 
         T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
         Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
         Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
-        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.min,
-        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.min,
-        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.min,
-        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.min,
-        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.min,
-        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.min,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.absMin,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.absMin,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.absMin,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.absMin,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.absMin,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.absMin,
         Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
