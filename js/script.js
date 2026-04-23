@@ -30,7 +30,6 @@ function updateBatchUI() {
     document.getElementById('nextBtn').disabled = currentFileIndex === batchFiles.length - 1;
     document.getElementById('nextBtn').style.opacity = currentFileIndex === batchFiles.length - 1 ? "0.5" : "1";
     
-    // Disable edit mode when switching files
     if (isEditMode) toggleEditMode();
 }
 
@@ -60,8 +59,13 @@ function readAndAnalyzeCurrentFile() {
         const lines = text.split(/\r?\n/);
         let dataStartIndex = -1;
         let subjectWeight = null;
+        let fileDescription = "Unknown";
         
         for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes("File Description")) {
+                const parts = lines[i].split('\t');
+                if (parts.length > 1) { fileDescription = parts[1].trim(); }
+            }
             if (lines[i].includes("Subject weight (kg)")) {
                 const parts = lines[i].split('\t');
                 if (parts.length > 1) { subjectWeight = parseFloat(parts[1]); }
@@ -74,30 +78,48 @@ function readAndAnalyzeCurrentFile() {
 
         if (dataStartIndex === -1) { return; }
 
+        const COL_COPX_TOT = 2; 
+        const COL_COPY_TOT = 3; 
+        const COL_COPX_A = 15;  
+        const COL_COPY_A = 16;  
+        const COL_COPX_B = 24;  
+        const COL_COPY_B = 25;  
+
         let timeData = [], fzData = [], fzAData = [], fzBData = [];
+        let copxTot = [], copyTot = [], copxA = [], copyA = [], copxB = [], copyB = [];
+
         for (let i = dataStartIndex; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             const cols = line.split('\t');
             const t = parseFloat(cols[0]), fz = parseFloat(cols[1]), fzA = parseFloat(cols[14]), fzB = parseFloat(cols[23]); 
+            
             if (!isNaN(t) && !isNaN(fz)) {
                 timeData.push(t); fzData.push(fz); fzAData.push(isNaN(fzA) ? 0 : fzA); fzBData.push(isNaN(fzB) ? 0 : fzB);
+                
+                // Giữ nguyên NaN để lúc nhấc chân không bị làm sai lệch biên độ
+                copxTot.push(parseFloat(cols[COL_COPX_TOT]));
+                copyTot.push(parseFloat(cols[COL_COPY_TOT]));
+                copxA.push(parseFloat(cols[COL_COPX_A]));
+                copyA.push(parseFloat(cols[COL_COPY_A]));
+                copxB.push(parseFloat(cols[COL_COPX_B]));
+                copyB.push(parseFloat(cols[COL_COPY_B]));
             }
         }
 
         if (timeData.length < 2) return;
         
-        // Save current data for manual edit (click-to-snap)
         currentChartTimeData = timeData;
         currentChartFzData = fzData;
 
-        if (analysisMode === 'sts') analyzeSTS(timeData, fzData, fzAData, fzBData, file.name);
-        else if (analysisMode === 'stw') analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, file.name);
+        const copData = { copxTot, copyTot, copxA, copyA, copxB, copyB };
+
+        if (analysisMode === 'sts') analyzeSTS(timeData, fzData, fzAData, fzBData, copData, file.name, fileDescription);
+        else if (analysisMode === 'stw') analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, file.name, fileDescription);
     };
     reader.readAsText(file);
 }
 
-// ENABLE / DISABLE MANUAL EDIT MODE
 function toggleEditMode() {
     isEditMode = !isEditMode;
     const btn = document.getElementById('editModeBtn');
@@ -120,8 +142,37 @@ function toggleEditMode() {
 }
 
 // ==========================================
-// CSV EXPORT
+// FILE PARSING & CSV EXPORT
 // ==========================================
+function parseFileInfo(description) {
+    let group = "Unknown";
+    const descUpper = description.toUpperCase();
+    
+    if (descUpper.startsWith("K")) group = "HE";
+    else if (descUpper.startsWith("B")) group = "KOA";
+
+    let task = "Unknown";
+    const taskMap = {
+        "13": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY TỰ DO lần 1",
+        "14": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY TỰ DO lần 2",
+        "15": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY TỰ DO lần 3",
+        "16": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY CHỐNG GỐI lần 1",
+        "17": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY CHỐNG GỐI lần 2",
+        "18": "Đứng lên và đi với vị trí chân đối xứng, 2 TAY CHỐNG GỐI lần 3",
+        "19": "Đứng lên và đi với vị trí chân ra sau, 2 TAY TỰ DO lần 1",
+        "20": "Đứng lên và đi với vị trí chân ra sau, 2 TAY TỰ DO lần 2",
+        "21": "Đứng lên và đi với vị trí chân ra sau, 2 TAY TỰ DO lần 3",
+        "22": "Đứng lên và đi với vị trí chân ra sau, 2 TAY CHỐNG GỐI lần 1",
+        "23": "Đứng lên và đi với vị trí chân ra sau, 2 TAY CHỐNG GỐI lần 2",
+        "24": "Đứng lên và đi với vị trí chân ra sau, 2 TAY CHỐNG GỐI lần 3"
+    };
+
+    const match = description.match(/_(1[3-9]|2[0-4])/);
+    if (match && match[1]) task = taskMap[match[1]];
+
+    return { group, task };
+}
+
 function exportBatchResults() {
     let unanalyzedCount = batchResults.filter(res => res === null).length;
     if (unanalyzedCount > 0) {
@@ -129,17 +180,26 @@ function exportBatchResults() {
         if (!confirmExport) return;
     }
 
-    let fileContent = "File_Name,Mode,Baseline_N,T0_s,T0_Note,T1_s,T1_Note,T2_s,T2_Note,T3_s,T3_Note,T4_s,T4_Note,T5_s,T5_Note\r\n";
+    let fileContent = "File_Name,File_Description,Group,Task,Mode,Baseline_N,T0_s,T0_Note,T1_s,T1_Note,T2_s,T2_Note,T3_s,T3_Note,T4_s,T4_Note,T5_s,T5_Note," +
+                      "Dur_T0_T1,Dur_T1_T2,Dur_T2_T3,Dur_T3_T4,Dur_T4_T5,Dur_Total," + 
+                      "Amp_COPx_Tot,Amp_COPx_Right_Tot,Amp_COPx_Left_Tot,Amp_COPy_Tot,Amp_COPy_Front_Tot,Amp_COPy_Back_Tot," + 
+                      "Amp_COPx_A,Amp_COPx_Right_A,Amp_COPx_Left_A,Amp_COPy_A,Amp_COPy_Front_A,Amp_COPy_Back_A," + 
+                      "Amp_COPx_B,Amp_COPx_Right_B,Amp_COPx_Left_B,Amp_COPy_B,Amp_COPy_Front_B,Amp_COPy_Back_B," + 
+                      "Path_Tot,Path_A,Path_B\r\n";
     
     batchResults.forEach(res => {
         if (res) {
-            fileContent += `${res.File},${res.Mode},${res.Baseline},` + 
-                           `${res.T0},${res.T0_type},` + 
-                           `${res.T1},${res.T1_type},` + 
-                           `${res.T2},${res.T2_type},` + 
-                           `${res.T3},${res.T3_type},` + 
-                           `${res.T4},${res.T4_type},` + 
-                           `${res.T5},${res.T5_type}\r\n`;
+            const fileInfo = parseFileInfo(res.FileDesc);
+            const safeTask = `"${fileInfo.task}"`; 
+            
+            fileContent += `${res.File},${res.FileDesc},${fileInfo.group},${safeTask},${res.Mode},${res.Baseline},` + 
+                           `${res.T0},${res.T0_type},${res.T1},${res.T1_type},${res.T2},${res.T2_type},` + 
+                           `${res.T3},${res.T3_type},${res.T4},${res.T4_type},${res.T5},${res.T5_type},` +
+                           `${res.Dur_T0_T1},${res.Dur_T1_T2},${res.Dur_T2_T3},${res.Dur_T3_T4},${res.Dur_T4_T5},${res.Dur_Total},` +
+                           `${res.Amp_COPx_Tot},${res.Amp_COPx_Right_Tot},${res.Amp_COPx_Left_Tot},${res.Amp_COPy_Tot},${res.Amp_COPy_Front_Tot},${res.Amp_COPy_Back_Tot},` +
+                           `${res.Amp_COPx_A},${res.Amp_COPx_Right_A},${res.Amp_COPx_Left_A},${res.Amp_COPy_A},${res.Amp_COPy_Front_A},${res.Amp_COPy_Back_A},` +
+                           `${res.Amp_COPx_B},${res.Amp_COPx_Right_B},${res.Amp_COPx_Left_B},${res.Amp_COPy_B},${res.Amp_COPy_Front_B},${res.Amp_COPy_Back_B},` +
+                           `${res.Path_Tot},${res.Path_A},${res.Path_B}\r\n`;
         }
     });
 
@@ -154,9 +214,46 @@ function exportBatchResults() {
 }
 
 // ==========================================
+// KINH NGIEM TINH TOAN COP
+// ==========================================
+// Hàm tính chi tiết các biên độ (Trái/Phải/Trước/Sau), bỏ qua các giá trị NaN khi nhấc chân
+function calcAmpDetails(arr, start, end) {
+    if (start >= end) return { total: "", max: "", min: "" };
+    const slice = arr.slice(start, end + 1).filter(v => !isNaN(v) && v !== null);
+    if (slice.length === 0) return { total: "", max: "", min: "" };
+    
+    const maxVal = Math.max(...slice); // Phải (x dương) / Trước (y dương)
+    const minVal = Math.min(...slice); // Trái (x âm) / Sau (y âm)
+    return {
+        total: (maxVal - minVal).toFixed(4),
+        max: maxVal.toFixed(4),
+        min: minVal.toFixed(4)
+    };
+}
+
+// Hàm tính quãng đường, bỏ qua các khoảng bị NaN
+function calcPathLen(arrX, arrY, start, end) {
+    if (start >= end) return "";
+    let path = 0;
+    let lastValidX = null, lastValidY = null;
+    for (let i = start; i <= end; i++) {
+        const x = arrX[i];
+        const y = arrY[i];
+        if (!isNaN(x) && !isNaN(y)) {
+            if (lastValidX !== null && lastValidY !== null) {
+                path += Math.sqrt(Math.pow(x - lastValidX, 2) + Math.pow(y - lastValidY, 2));
+            }
+            lastValidX = x;
+            lastValidY = y;
+        }
+    }
+    return path.toFixed(4);
+}
+
+// ==========================================
 // TEST 1: SIT TO STAND (STS)
 // ==========================================
-function analyzeSTS(timeData, fzData, fzAData, fzBData, fileName) {
+function analyzeSTS(timeData, fzData, fzAData, fzBData, copData, fileName, fileDescription) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -170,7 +267,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, fileName) {
     const thresholdT0 = meanFz5s - (3 * stdFz5s);
 
     let T0_val = null, T1_val = null, T2_val = null, T3_val = null, T4_val = null, T5_val = null;
-    let T0_idx = -1, T1_idx = -1, T2_idx = -1, T3_idx = -1, T4_idx = -1;
+    let T0_idx = -1, T1_idx = -1, T2_idx = -1, T3_idx = -1, T4_idx = -1, T5_idx = -1;
     let fzAtT0 = null, fzAtT1 = null, fzAtT2 = null, fzAtT3 = null, fzAtT4 = null, fzAtT5 = null;
     let localMax_val = null, localMin_val = null, lMaxFz = null, lMaxIdx = -1; 
 
@@ -240,18 +337,49 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, fileName) {
 
     if (T4_idx !== -1 && fzAtT3 !== null) {
         for (let i = T4_idx + 1; i < limitIdx; i++) {
-            if (fzData[i] >= fzAtT3) { T5_val = timeData[i]; fzAtT5 = fzData[i]; break; }
+            if (fzData[i] >= fzAtT3) { T5_val = timeData[i]; T5_idx = i; fzAtT5 = fzData[i]; break; }
         }
     }
 
+    let dur_T0_T1 = "", dur_T1_T2 = "", dur_T2_T3 = "", dur_T3_T4 = "", dur_T4_T5 = "", dur_Total = "";
+    if (T0_val !== null && T1_val !== null) dur_T0_T1 = (T1_val - T0_val).toFixed(4);
+    if (T1_val !== null && T2_val !== null) dur_T1_T2 = (T2_val - T1_val).toFixed(4);
+    if (T2_val !== null && T3_val !== null) dur_T2_T3 = (T3_val - T2_val).toFixed(4);
+    if (T3_val !== null && T4_val !== null) dur_T3_T4 = (T4_val - T3_val).toFixed(4);
+    if (T4_val !== null && T5_val !== null) dur_T4_T5 = (T5_val - T4_val).toFixed(4);
+    if (T0_val !== null && T5_val !== null) dur_Total = (T5_val - T0_val).toFixed(4);
+
+    let startCopIdx = T0_idx !== -1 ? T0_idx : 0;
+    let endCopIdx = T5_idx !== -1 ? T5_idx : (T4_idx !== -1 ? T4_idx : timeData.length - 1);
+
+    let copxTot_amp = calcAmpDetails(copData.copxTot, startCopIdx, endCopIdx);
+    let copyTot_amp = calcAmpDetails(copData.copyTot, startCopIdx, endCopIdx);
+    let copxA_amp = calcAmpDetails(copData.copxA, startCopIdx, endCopIdx);
+    let copyA_amp = calcAmpDetails(copData.copyA, startCopIdx, endCopIdx);
+    let copxB_amp = calcAmpDetails(copData.copxB, startCopIdx, endCopIdx);
+    let copyB_amp = calcAmpDetails(copData.copyB, startCopIdx, endCopIdx);
+    
+    let path_Tot = calcPathLen(copData.copxTot, copData.copyTot, startCopIdx, endCopIdx);
+    let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
+    let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
+
     batchResults[currentFileIndex] = {
-        File: fileName, Mode: 'STS', Baseline: meanFz5s.toFixed(2),
+        File: fileName, FileDesc: fileDescription, Mode: 'STS', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
         T1: T1_val !== null ? T1_val.toFixed(4) : "", T1_type: T1_val !== null ? "Auto" : "",
         T2: T2_val !== null ? T2_val.toFixed(4) : "", T2_type: T2_val !== null ? "Auto" : "",
         T3: T3_val !== null ? T3_val.toFixed(4) : "", T3_type: T3_val !== null ? "Auto" : "",
         T4: T4_val !== null ? T4_val.toFixed(4) : "", T4_type: T4_val !== null ? "Auto" : "",
-        T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : ""
+        T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
+        Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
+        Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.min,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.min,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.min,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.min,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.min,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.min,
+        Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
     chartWrapper.style.display = 'block'; 
@@ -298,7 +426,7 @@ function analyzeSTS(timeData, fzData, fzAData, fzBData, fileName) {
 // ==========================================
 // TEST 2: SIT TO WALK (STW)
 // ==========================================
-function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, fileName) {
+function analyzeSTW(timeData, fzData, fzAData, fzBData, copData, subjectWeight, fileName, fileDescription) {
     const resultDiv = document.getElementById('result');
     const windowMsInput = document.getElementById('windowMs');
     const chartWrapper = document.getElementById('chartWrapper');
@@ -312,7 +440,7 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, fileName)
     const thresholdT0 = meanFz5s - (4 * stdFz5s);
 
     let T0_val = null, T1_val = null, T2_val = null, T3_val = null, T4_val = null, T5_val = null;
-    let T0_idx = -1, T1_idx = -1, T2_idx = -1, T3_idx = -1, T4_idx = -1;
+    let T0_idx = -1, T1_idx = -1, T2_idx = -1, T3_idx = -1, T4_idx = -1, T5_idx = -1;
     let fzAtT0 = null, fzAtT1 = null, fzAtT2 = null, fzAtT3 = null, fzAtT4 = null, fzAtT5 = null;
 
     const sampleRate = 1 / (timeData[1] - timeData[0]);
@@ -364,19 +492,50 @@ function analyzeSTW(timeData, fzData, fzAData, fzBData, subjectWeight, fileName)
     if (T4_idx !== -1 && footOffAtT4 !== null) {
         for (let i = T4_idx; i < timeData.length; i++) {
             if ((footOffAtT4 === 'A' ? fzBData[i] : fzAData[i]) <= 5.0) { 
-                T5_val = timeData[i]; fzAtT5 = fzData[i]; break;
+                T5_idx = i; T5_val = timeData[i]; fzAtT5 = fzData[i]; break;
             }
         }
     }
 
+    let dur_T0_T1 = "", dur_T1_T2 = "", dur_T2_T3 = "", dur_T3_T4 = "", dur_T4_T5 = "", dur_Total = "";
+    if (T0_val !== null && T1_val !== null) dur_T0_T1 = (T1_val - T0_val).toFixed(4);
+    if (T1_val !== null && T2_val !== null) dur_T1_T2 = (T2_val - T1_val).toFixed(4);
+    if (T2_val !== null && T3_val !== null) dur_T2_T3 = (T3_val - T2_val).toFixed(4);
+    if (T3_val !== null && T4_val !== null) dur_T3_T4 = (T4_val - T3_val).toFixed(4);
+    if (T4_val !== null && T5_val !== null) dur_T4_T5 = (T5_val - T4_val).toFixed(4);
+    if (T0_val !== null && T5_val !== null) dur_Total = (T5_val - T0_val).toFixed(4);
+
+    let startCopIdx = T0_idx !== -1 ? T0_idx : 0;
+    let endCopIdx = T5_idx !== -1 ? T5_idx : (T4_idx !== -1 ? T4_idx : timeData.length - 1);
+
+    let copxTot_amp = calcAmpDetails(copData.copxTot, startCopIdx, endCopIdx);
+    let copyTot_amp = calcAmpDetails(copData.copyTot, startCopIdx, endCopIdx);
+    let copxA_amp = calcAmpDetails(copData.copxA, startCopIdx, endCopIdx);
+    let copyA_amp = calcAmpDetails(copData.copyA, startCopIdx, endCopIdx);
+    let copxB_amp = calcAmpDetails(copData.copxB, startCopIdx, endCopIdx);
+    let copyB_amp = calcAmpDetails(copData.copyB, startCopIdx, endCopIdx);
+    
+    let path_Tot = calcPathLen(copData.copxTot, copData.copyTot, startCopIdx, endCopIdx);
+    let path_A = calcPathLen(copData.copxA, copData.copyA, startCopIdx, endCopIdx);
+    let path_B = calcPathLen(copData.copxB, copData.copyB, startCopIdx, endCopIdx);
+
     batchResults[currentFileIndex] = {
-        File: fileName, Mode: 'STW', Baseline: meanFz5s.toFixed(2),
+        File: fileName, FileDesc: fileDescription, Mode: 'STW', Baseline: meanFz5s.toFixed(2),
         T0: T0_val !== null ? T0_val.toFixed(4) : "", T0_type: T0_val !== null ? "Auto" : "",
         T1: T1_val !== null ? T1_val.toFixed(4) : "", T1_type: T1_val !== null ? "Auto" : "",
         T2: T2_val !== null ? T2_val.toFixed(4) : "", T2_type: T2_val !== null ? "Auto" : "",
         T3: T3_val !== null ? T3_val.toFixed(4) : "", T3_type: T3_val !== null ? "Auto" : "",
         T4: T4_val !== null ? T4_val.toFixed(4) : "", T4_type: T4_val !== null ? "Auto" : "",
-        T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : ""
+        T5: T5_val !== null ? T5_val.toFixed(4) : "", T5_type: T5_val !== null ? "Auto" : "",
+        Dur_T0_T1: dur_T0_T1, Dur_T1_T2: dur_T1_T2, Dur_T2_T3: dur_T2_T3, 
+        Dur_T3_T4: dur_T3_T4, Dur_T4_T5: dur_T4_T5, Dur_Total: dur_Total,
+        Amp_COPx_Tot: copxTot_amp.total, Amp_COPx_Right_Tot: copxTot_amp.max, Amp_COPx_Left_Tot: copxTot_amp.min,
+        Amp_COPy_Tot: copyTot_amp.total, Amp_COPy_Front_Tot: copyTot_amp.max, Amp_COPy_Back_Tot: copyTot_amp.min,
+        Amp_COPx_A: copxA_amp.total, Amp_COPx_Right_A: copxA_amp.max, Amp_COPx_Left_A: copxA_amp.min,
+        Amp_COPy_A: copyA_amp.total, Amp_COPy_Front_A: copyA_amp.max, Amp_COPy_Back_A: copyA_amp.min,
+        Amp_COPx_B: copxB_amp.total, Amp_COPx_Right_B: copxB_amp.max, Amp_COPx_Left_B: copxB_amp.min,
+        Amp_COPy_B: copyB_amp.total, Amp_COPy_Front_B: copyB_amp.max, Amp_COPy_Back_B: copyB_amp.min,
+        Path_Tot: path_Tot, Path_A: path_A, Path_B: path_B
     };
 
     chartWrapper.style.display = 'block'; 
